@@ -362,6 +362,13 @@ function updateRouteVisual() {
   
   // 清除旧路线
   if (routeLine) {
+    // 如果是Group，需要清理子对象
+    if (routeLine.isGroup) {
+      routeLine.traverse(child => {
+        if (child.geometry) child.geometry.dispose()
+        if (child.material) child.material.dispose()
+      })
+    }
     renderer.scene.remove(routeLine)
     routeLine = null
   }
@@ -392,19 +399,41 @@ function updateRouteVisual() {
     return new THREE.Vector3(node.worldX, node.worldY + 0.5, node.worldZ)
   })
   
-  // 创建路线管道
-  const curve = new THREE.CatmullRomCurve3(points)
-  const segments = Math.max(points.length * 16, 32)
-  const geometry = new THREE.TubeGeometry(curve, segments, 0.12, 8, false)
-  const material = new THREE.MeshStandardMaterial({
-    color: 0xf97316,
-    emissive: 0xf97316,
-    emissiveIntensity: 0.8,
-    transparent: true,
-    opacity: 0.95
-  })
+  // 创建折线路径（每段直线连接）
+  routeLine = new THREE.Group()
   
-  routeLine = new THREE.Mesh(geometry, material)
+  for (let i = 0; i < points.length - 1; i++) {
+    const start = points[i]
+    const end = points[i + 1]
+    
+    // 使用直线路径
+    const lineCurve = new THREE.LineCurve3(start, end)
+    const geometry = new THREE.TubeGeometry(lineCurve, 8, 0.1, 8, false)
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xf97316,
+      emissive: 0xf97316,
+      emissiveIntensity: 0.8,
+      transparent: true,
+      opacity: 0.95
+    })
+    
+    const segment = new THREE.Mesh(geometry, material)
+    routeLine.add(segment)
+    
+    // 在每个拐点添加小球体（除了起点和终点）
+    if (i > 0) {
+      const jointGeom = new THREE.SphereGeometry(0.15, 8, 8)
+      const jointMat = new THREE.MeshStandardMaterial({
+        color: 0xfbbf24,
+        emissive: 0xfbbf24,
+        emissiveIntensity: 0.5
+      })
+      const joint = new THREE.Mesh(jointGeom, jointMat)
+      joint.position.copy(start)
+      routeLine.add(joint)
+    }
+  }
+  
   renderer.scene.add(routeLine)
   
   // 添加起点和终点标记
