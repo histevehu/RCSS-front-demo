@@ -734,17 +734,12 @@ export class Map3DRenderer {
    * Waypoint 坐标转世界坐标
    */
   waypointToWorld(wp, map) {
-    const cos = Math.cos(map.rotation)
-    const sin = Math.sin(map.rotation)
-    const localX = wp.x
-    const localY = wp.y
-    const localZ = (wp.z || 0) * Z_SCALE
+    // 与 renderWaypoints 中的坐标系保持一致：local=(x, z*Z_SCALE, -y)
+    const v = new THREE.Vector3(wp.x, (wp.z || 0) * Z_SCALE, -wp.y)
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), map.rotation)
+    v.add(new THREE.Vector3(map.offset.x, map.offset.z * Z_SCALE, -map.offset.y))
 
-    return {
-      x: localX * cos - localY * (-sin) + map.offset.x,
-      y: localZ + map.offset.z * Z_SCALE,
-      z: -(localX * sin + localY * cos) - map.offset.y
-    }
+    return { x: v.x, y: v.y, z: v.z }
   }
 
   /**

@@ -105,6 +105,17 @@ const showRoute = ref(true)
 const currentFloor = ref('all')
 const floors = ref([])
 
+// 与 Map3DRenderer 保持一致的坐标系换算
+const Z_SCALE = 3
+const Y_AXIS = new THREE.Vector3(0, 1, 0)
+function waypointToWorldVec(map, wp) {
+  // Map3DRenderer: waypoint local=(x, z*Z_SCALE, -y), group pos=(offset.x, offset.z*Z_SCALE, -offset.y), group rotY=rotation
+  const v = new THREE.Vector3(wp.x, (wp.z || 0) * Z_SCALE, -wp.y)
+  v.applyAxisAngle(Y_AXIS, map.rotation)
+  v.add(new THREE.Vector3(map.offset.x, map.offset.z * Z_SCALE, -map.offset.y))
+  return v
+}
+
 let renderer = null
 let maps = []
 let robotMeshes = []
@@ -212,33 +223,25 @@ function updateRobotVisuals() {
   })
 }
 
-// 根据机器人找到对应的waypoint位置
+// 根据机器人找到对应的waypoint位置（严格落在拓扑点上）
 function findWaypointForRobot(robot, index) {
-  // 在地图waypoints中分配位置
-  let allWaypoints = []
+  const allWaypoints = []
   maps.forEach(map => {
     if (map.mapName.toLowerCase().includes('stair')) return
-    
+
     map.waypoints.forEach(wp => {
-      const cos = Math.cos(map.rotation)
-      const sin = Math.sin(map.rotation)
-      const worldX = wp.x * cos - wp.y * (-sin) + map.offset.x
-      const worldZ = -(wp.x * sin + wp.y * cos) - map.offset.y
-      const worldY = (wp.z || 0) * 3 + map.offset.z * 3
-      
+      const v = waypointToWorldVec(map, wp)
       allWaypoints.push({
         ...wp,
         mapName: map.mapName,
-        worldX,
-        worldY,
-        worldZ
+        worldX: v.x,
+        worldY: v.y,
+        worldZ: v.z,
       })
     })
   })
-  
+
   if (allWaypoints.length === 0) return null
-  
-  // 为每个机器人分配一个不同的waypoint
   return allWaypoints[index % allWaypoints.length]
 }
 
@@ -253,21 +256,17 @@ function buildTopoGraph() {
     if (map.mapName.toLowerCase().includes('stair')) return
     
     map.waypoints.forEach(wp => {
-      const cos = Math.cos(map.rotation)
-      const sin = Math.sin(map.rotation)
-      const worldX = wp.x * cos - wp.y * (-sin) + map.offset.x
-      const worldZ = -(wp.x * sin + wp.y * cos) - map.offset.y
-      const worldY = (wp.z || 0) * 3 + map.offset.z * 3
-      
+      const v = waypointToWorldVec(map, wp)
+
       const fullCode = `${map.mapName}:${wp.code}`
       const node = {
         code: fullCode,
         waypoint: wp,
         mapName: map.mapName,
         floor: map.floor,
-        worldX,
-        worldY,
-        worldZ,
+        worldX: v.x,
+        worldY: v.y,
+        worldZ: v.z,
         neighbors: []
       }
       
@@ -410,7 +409,8 @@ function updateRouteVisual() {
   // 将路径转换为3D点
   const points = pathCodes.map(code => {
     const node = waypointByCode.get(code)
-    return new THREE.Vector3(node.worldX, node.worldY + 0.5, node.worldZ)
+    // 与 Map3DRenderer 的 topo 连线高度一致（+0.2）
+    return new THREE.Vector3(node.worldX, node.worldY + 0.2, node.worldZ)
   })
   
   // 创建折线路径（每段直线连接）
@@ -422,29 +422,69 @@ function updateRouteVisual() {
     
     // 使用直线路径
     const lineCurve = new THREE.LineCurve3(start, end)
-    const geometry = new THREE.TubeGeometry(lineCurve, 8, 0.1, 8, false)
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xf97316,
-      emissive: 0xf97316,
-      emissiveIntensity: 0.8,
+
+    // 1) 外发光（更显眼）
+    const glowGeometry = new THREE.TubeGeometry(lineCurve, 8, 0.22, 8, false)
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff6a00,
       transparent: true,
-      opacity: 0.95
+      opacity: 0.25,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
     })
-    
+    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial)
+    glowMesh.renderOrder = 999
+    routeLine.add(glowMesh)
+
+    // 2) 主路线（加粗、亮色、置顶）
+    const geometry = new THREE.TubeGeometry(lineCurve, 8, 0.14, 10, false)
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xff6a00,
+      emissive: 0xff6a00,
+      emissiveIntensity: 1.2,
+      metalness: 0.2,
+      roughness: 0.4,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      depthTest: false,
+    })
+
     const segment = new THREE.Mesh(geometry, material)
+    segment.renderOrder = 1000
     routeLine.add(segment)
-    
-    // 在每个拐点添加小球体（除了起点和终点）
+
+    // 在每个拐点添加高亮球体（除了起点和终点）
     if (i > 0) {
-      const jointGeom = new THREE.SphereGeometry(0.15, 8, 8)
+      const jointGeom = new THREE.SphereGeometry(0.22, 12, 12)
       const jointMat = new THREE.MeshStandardMaterial({
-        color: 0xfbbf24,
-        emissive: 0xfbbf24,
-        emissiveIntensity: 0.5
+        color: 0xffd166,
+        emissive: 0xffd166,
+        emissiveIntensity: 0.9,
+        metalness: 0.0,
+        roughness: 0.5,
+        depthWrite: false,
+        depthTest: false,
       })
       const joint = new THREE.Mesh(jointGeom, jointMat)
       joint.position.copy(start)
+      joint.renderOrder = 1001
       routeLine.add(joint)
+
+      const jointGlowGeom = new THREE.SphereGeometry(0.35, 12, 12)
+      const jointGlowMat = new THREE.MeshBasicMaterial({
+        color: 0xffd166,
+        transparent: true,
+        opacity: 0.18,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: false,
+      })
+      const jointGlow = new THREE.Mesh(jointGlowGeom, jointGlowMat)
+      jointGlow.position.copy(start)
+      jointGlow.renderOrder = 998
+      routeLine.add(jointGlow)
     }
   }
   
@@ -464,28 +504,66 @@ function addRouteMarkers(points) {
   if (points.length < 2) return
   
   // 起点标记（蓝色）
-  const startGeom = new THREE.SphereGeometry(0.3, 16, 16)
+  const startGeom = new THREE.SphereGeometry(0.4, 16, 16)
   const startMat = new THREE.MeshStandardMaterial({
     color: 0x3b82f6,
     emissive: 0x3b82f6,
-    emissiveIntensity: 0.6
+    emissiveIntensity: 1.0,
+    depthWrite: false,
+    depthTest: false,
   })
   const startMarker = new THREE.Mesh(startGeom, startMat)
   startMarker.position.copy(points[0])
+  startMarker.renderOrder = 1002
   renderer.scene.add(startMarker)
   routeMarkers.push(startMarker)
+
+  const startGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.65, 16, 16),
+    new THREE.MeshBasicMaterial({
+      color: 0x3b82f6,
+      transparent: true,
+      opacity: 0.18,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    })
+  )
+  startGlow.position.copy(points[0])
+  startGlow.renderOrder = 997
+  renderer.scene.add(startGlow)
+  routeMarkers.push(startGlow)
   
   // 终点标记（红色）
-  const endGeom = new THREE.SphereGeometry(0.3, 16, 16)
+  const endGeom = new THREE.SphereGeometry(0.4, 16, 16)
   const endMat = new THREE.MeshStandardMaterial({
     color: 0xef4444,
     emissive: 0xef4444,
-    emissiveIntensity: 0.6
+    emissiveIntensity: 1.0,
+    depthWrite: false,
+    depthTest: false,
   })
   const endMarker = new THREE.Mesh(endGeom, endMat)
   endMarker.position.copy(points[points.length - 1])
+  endMarker.renderOrder = 1002
   renderer.scene.add(endMarker)
   routeMarkers.push(endMarker)
+
+  const endGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.65, 16, 16),
+    new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      transparent: true,
+      opacity: 0.18,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    })
+  )
+  endGlow.position.copy(points[points.length - 1])
+  endGlow.renderOrder = 997
+  renderer.scene.add(endGlow)
+  routeMarkers.push(endGlow)
 }
 
 // 重置相机

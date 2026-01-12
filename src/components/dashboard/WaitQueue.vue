@@ -18,7 +18,7 @@
               {{ index + 1 }}. {{ task.id }}-{{ task.name }}
             </div>
             <div class="text-xs text-gray-500 mt-1">
-              路线: {{ task.route.join('→') }}
+              路线: {{ getRouteText(task) }}
             </div>
             <div class="text-xs text-gray-400">
               等待: {{ getWaitTime(task) }}
@@ -49,6 +49,16 @@ function getPriorityColor(priority) {
     low: 'bg-green-500',
   }
   return colors[priority] || 'bg-gray-500'
+}
+
+function getRouteText(task) {
+  if (Array.isArray(task.routeNodes) && task.routeNodes.length > 0) {
+    return task.routeNodes.join('→')
+  }
+  if (Array.isArray(task.route) && task.route.length > 0) {
+    return task.route.join('→')
+  }
+  return '待计算'
 }
 
 function getWaitTime(task) {
