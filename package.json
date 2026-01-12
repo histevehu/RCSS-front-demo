@@ -1,0 +1,20 @@
+{
+  "name": "3d-map-viewer",
+  "version": "1.0.0",
+  "description": "3D地图显示系统",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.180.0",
+    "js-yaml": "^4.1.0",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "@vitejs/plugin-vue": "^5.1.0"
+  }
+}
