@@ -242,13 +242,16 @@ function findWaypointForRobot(robot, index) {
   return allWaypoints[index % allWaypoints.length]
 }
 
-// 构建拓扑网络图
+// 构建拓扑网络图（只包含非楼梯地图）
 function buildTopoGraph() {
   const graph = new Map() // code -> { waypoint, neighbors: [code, ...], worldPos }
   const waypointByCode = new Map()
   
-  // 第一步：收集所有waypoints并计算世界坐标
+  // 第一步：收集所有非楼梯地图的waypoints并计算世界坐标
   maps.forEach(map => {
+    // 排除楼梯地图
+    if (map.mapName.toLowerCase().includes('stair')) return
+    
     map.waypoints.forEach(wp => {
       const cos = Math.cos(map.rotation)
       const sin = Math.sin(map.rotation)
@@ -261,6 +264,7 @@ function buildTopoGraph() {
         code: fullCode,
         waypoint: wp,
         mapName: map.mapName,
+        floor: map.floor,
         worldX,
         worldY,
         worldZ,
@@ -272,14 +276,16 @@ function buildTopoGraph() {
     })
   })
   
-  // 第二步：构建连接关系
+  // 第二步：构建连接关系（只连接同图内的点）
   maps.forEach(map => {
+    if (map.mapName.toLowerCase().includes('stair')) return
+    
     map.waypoints.forEach(wp => {
       const fullCode = `${map.mapName}:${wp.code}`
       const node = graph.get(fullCode)
       if (!node) return
       
-      // 同图内的relatedPoints
+      // 只连接同图内的relatedPoints
       if (wp.relatedPoints && wp.relatedPoints.length > 0) {
         wp.relatedPoints.forEach(relCode => {
           const neighborFullCode = `${map.mapName}:${relCode}`
@@ -287,21 +293,6 @@ function buildTopoGraph() {
             node.neighbors.push(neighborFullCode)
           }
         })
-      }
-      
-      // 跨图连接
-      if (wp.connections && wp.connections.length > 0) {
-        wp.connections.forEach(conn => {
-          const neighborFullCode = `${conn.mapName}:${conn.waypointCode}`
-          if (graph.has(neighborFullCode)) {
-            node.neighbors.push(neighborFullCode)
-          }
-        })
-      } else if (wp.linkedMapName && wp.linkedWaypointCode) {
-        const neighborFullCode = `${wp.linkedMapName}:${wp.linkedWaypointCode}`
-        if (graph.has(neighborFullCode)) {
-          node.neighbors.push(neighborFullCode)
-        }
       }
     })
   })
@@ -337,22 +328,37 @@ function findPathBFS(graph, startCode, endCode) {
   return null // 没找到路径
 }
 
-// 随机选择起点和终点（基于任务ID生成确定性随机）
+// 选择起点和终点（基于任务ID，确保在同一地图内）
 function getTaskEndpoints(taskId, graph) {
-  const nodes = Array.from(graph.values()).filter(n => !n.mapName.toLowerCase().includes('stair'))
+  const nodes = Array.from(graph.values())
   if (nodes.length < 2) return null
   
-  // 使用任务ID生成确定性的索引
-  const hash = taskId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  const startIdx = hash % nodes.length
-  const endIdx = (hash * 7 + 13) % nodes.length
+  // 按地图分组
+  const mapGroups = new Map()
+  nodes.forEach(node => {
+    if (!mapGroups.has(node.mapName)) {
+      mapGroups.set(node.mapName, [])
+    }
+    mapGroups.get(node.mapName).push(node)
+  })
   
-  // 确保起点和终点不同
-  const adjustedEndIdx = startIdx === endIdx ? (endIdx + 1) % nodes.length : endIdx
+  // 获取有足够点的地图列表
+  const validMaps = Array.from(mapGroups.entries()).filter(([_, nodes]) => nodes.length >= 2)
+  if (validMaps.length === 0) return null
+  
+  // 使用任务ID选择地图
+  const hash = taskId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const mapIdx = hash % validMaps.length
+  const [mapName, mapNodes] = validMaps[mapIdx]
+  
+  // 在该地图内选择起点和终点
+  const startIdx = hash % mapNodes.length
+  const endIdx = (hash * 7 + 13) % mapNodes.length
+  const adjustedEndIdx = startIdx === endIdx ? (endIdx + 1) % mapNodes.length : endIdx
   
   return {
-    start: nodes[startIdx].code,
-    end: nodes[adjustedEndIdx].code
+    start: mapNodes[startIdx].code,
+    end: mapNodes[adjustedEndIdx].code
   }
 }
 
