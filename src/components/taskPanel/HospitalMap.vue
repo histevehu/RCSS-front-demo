@@ -242,6 +242,120 @@ function findWaypointForRobot(robot, index) {
   return allWaypoints[index % allWaypoints.length]
 }
 
+// 构建拓扑网络图
+function buildTopoGraph() {
+  const graph = new Map() // code -> { waypoint, neighbors: [code, ...], worldPos }
+  const waypointByCode = new Map()
+  
+  // 第一步：收集所有waypoints并计算世界坐标
+  maps.forEach(map => {
+    map.waypoints.forEach(wp => {
+      const cos = Math.cos(map.rotation)
+      const sin = Math.sin(map.rotation)
+      const worldX = wp.x * cos - wp.y * (-sin) + map.offset.x
+      const worldZ = -(wp.x * sin + wp.y * cos) - map.offset.y
+      const worldY = (wp.z || 0) * 3 + map.offset.z * 3
+      
+      const fullCode = `${map.mapName}:${wp.code}`
+      const node = {
+        code: fullCode,
+        waypoint: wp,
+        mapName: map.mapName,
+        worldX,
+        worldY,
+        worldZ,
+        neighbors: []
+      }
+      
+      graph.set(fullCode, node)
+      waypointByCode.set(fullCode, node)
+    })
+  })
+  
+  // 第二步：构建连接关系
+  maps.forEach(map => {
+    map.waypoints.forEach(wp => {
+      const fullCode = `${map.mapName}:${wp.code}`
+      const node = graph.get(fullCode)
+      if (!node) return
+      
+      // 同图内的relatedPoints
+      if (wp.relatedPoints && wp.relatedPoints.length > 0) {
+        wp.relatedPoints.forEach(relCode => {
+          const neighborFullCode = `${map.mapName}:${relCode}`
+          if (graph.has(neighborFullCode)) {
+            node.neighbors.push(neighborFullCode)
+          }
+        })
+      }
+      
+      // 跨图连接
+      if (wp.connections && wp.connections.length > 0) {
+        wp.connections.forEach(conn => {
+          const neighborFullCode = `${conn.mapName}:${conn.waypointCode}`
+          if (graph.has(neighborFullCode)) {
+            node.neighbors.push(neighborFullCode)
+          }
+        })
+      } else if (wp.linkedMapName && wp.linkedWaypointCode) {
+        const neighborFullCode = `${wp.linkedMapName}:${wp.linkedWaypointCode}`
+        if (graph.has(neighborFullCode)) {
+          node.neighbors.push(neighborFullCode)
+        }
+      }
+    })
+  })
+  
+  return { graph, waypointByCode }
+}
+
+// BFS找路径
+function findPathBFS(graph, startCode, endCode) {
+  if (!graph.has(startCode) || !graph.has(endCode)) return null
+  if (startCode === endCode) return [startCode]
+  
+  const queue = [[startCode]]
+  const visited = new Set([startCode])
+  
+  while (queue.length > 0) {
+    const path = queue.shift()
+    const current = path[path.length - 1]
+    const node = graph.get(current)
+    
+    for (const neighbor of node.neighbors) {
+      if (neighbor === endCode) {
+        return [...path, neighbor]
+      }
+      
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor)
+        queue.push([...path, neighbor])
+      }
+    }
+  }
+  
+  return null // 没找到路径
+}
+
+// 随机选择起点和终点（基于任务ID生成确定性随机）
+function getTaskEndpoints(taskId, graph) {
+  const nodes = Array.from(graph.values()).filter(n => !n.mapName.toLowerCase().includes('stair'))
+  if (nodes.length < 2) return null
+  
+  // 使用任务ID生成确定性的索引
+  const hash = taskId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const startIdx = hash % nodes.length
+  const endIdx = (hash * 7 + 13) % nodes.length
+  
+  // 确保起点和终点不同
+  const adjustedEndIdx = startIdx === endIdx ? (endIdx + 1) % nodes.length : endIdx
+  
+  return {
+    start: nodes[startIdx].code,
+    end: nodes[adjustedEndIdx].code
+  }
+}
+
 // 更新任务路线可视化
 function updateRouteVisual() {
   if (!renderer || !renderer.scene) return
@@ -252,64 +366,83 @@ function updateRouteVisual() {
     routeLine = null
   }
   
+  // 清除旧标记
+  routeMarkers.forEach(m => renderer.scene.remove(m))
+  routeMarkers = []
+  
   if (!showRoute.value || !store.selectedTaskId) return
   
   const task = store.tasks.find(t => t.id === store.selectedTaskId)
-  if (!task || !task.route || task.route.length < 2) return
+  if (!task) return
   
-  // 从任务路线生成3D路径点
-  const points = []
-  task.route.forEach((routeStr, i) => {
-    // 根据路线字符串找到对应的waypoint
-    const waypoint = findWaypointByRoute(routeStr, i)
-    if (waypoint) {
-      points.push(new THREE.Vector3(waypoint.worldX, waypoint.worldY + 0.3, waypoint.worldZ))
-    }
+  // 构建拓扑图
+  const { graph, waypointByCode } = buildTopoGraph()
+  
+  // 获取任务的起点和终点
+  const endpoints = getTaskEndpoints(task.id, graph)
+  if (!endpoints) return
+  
+  // BFS找路径
+  const pathCodes = findPathBFS(graph, endpoints.start, endpoints.end)
+  if (!pathCodes || pathCodes.length < 2) return
+  
+  // 将路径转换为3D点
+  const points = pathCodes.map(code => {
+    const node = waypointByCode.get(code)
+    return new THREE.Vector3(node.worldX, node.worldY + 0.5, node.worldZ)
   })
-  
-  if (points.length < 2) return
   
   // 创建路线管道
   const curve = new THREE.CatmullRomCurve3(points)
-  const geometry = new THREE.TubeGeometry(curve, 64, 0.15, 8, false)
+  const segments = Math.max(points.length * 16, 32)
+  const geometry = new THREE.TubeGeometry(curve, segments, 0.12, 8, false)
   const material = new THREE.MeshStandardMaterial({
     color: 0xf97316,
     emissive: 0xf97316,
-    emissiveIntensity: 0.6,
+    emissiveIntensity: 0.8,
     transparent: true,
-    opacity: 0.9
+    opacity: 0.95
   })
   
   routeLine = new THREE.Mesh(geometry, material)
   renderer.scene.add(routeLine)
+  
+  // 添加起点和终点标记
+  addRouteMarkers(points)
 }
 
-// 根据路线字符串找到waypoint
-function findWaypointByRoute(routeStr, index) {
-  let allWaypoints = []
-  maps.forEach(map => {
-    map.waypoints.forEach(wp => {
-      const cos = Math.cos(map.rotation)
-      const sin = Math.sin(map.rotation)
-      const worldX = wp.x * cos - wp.y * (-sin) + map.offset.x
-      const worldZ = -(wp.x * sin + wp.y * cos) - map.offset.y
-      const worldY = (wp.z || 0) * 3 + map.offset.z * 3
-      
-      allWaypoints.push({
-        ...wp,
-        mapName: map.mapName,
-        worldX,
-        worldY,
-        worldZ
-      })
-    })
+// 添加路线起点和终点标记
+let routeMarkers = []
+function addRouteMarkers(points) {
+  // 清除旧标记
+  routeMarkers.forEach(m => renderer.scene.remove(m))
+  routeMarkers = []
+  
+  if (points.length < 2) return
+  
+  // 起点标记（蓝色）
+  const startGeom = new THREE.SphereGeometry(0.3, 16, 16)
+  const startMat = new THREE.MeshStandardMaterial({
+    color: 0x3b82f6,
+    emissive: 0x3b82f6,
+    emissiveIntensity: 0.6
   })
+  const startMarker = new THREE.Mesh(startGeom, startMat)
+  startMarker.position.copy(points[0])
+  renderer.scene.add(startMarker)
+  routeMarkers.push(startMarker)
   
-  if (allWaypoints.length === 0) return null
-  
-  // 简单分配：根据index选择不同的点
-  const step = Math.floor(allWaypoints.length / 5)
-  return allWaypoints[(index * step) % allWaypoints.length]
+  // 终点标记（红色）
+  const endGeom = new THREE.SphereGeometry(0.3, 16, 16)
+  const endMat = new THREE.MeshStandardMaterial({
+    color: 0xef4444,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.6
+  })
+  const endMarker = new THREE.Mesh(endGeom, endMat)
+  endMarker.position.copy(points[points.length - 1])
+  renderer.scene.add(endMarker)
+  routeMarkers.push(endMarker)
 }
 
 // 重置相机

@@ -405,13 +405,16 @@ export class Map3DRenderer {
     // 使用 InstancedMesh 批量渲染
     const boxSize = resolution * SAMPLE_RATE
     const geometry = new THREE.BoxGeometry(boxSize, WALL_HEIGHT, boxSize)
-    // 明亮墙体材质 - 接近白色的浅灰
+    // 半透明墙体材质 - 让路线更清晰
     const material = new THREE.MeshStandardMaterial({
-      color: 0xF8F9FA,
-      emissive: 0xFFFFFF,
-      emissiveIntensity: 0.3,
+      color: 0xB0C4DE,
+      emissive: 0x87CEEB,
+      emissiveIntensity: 0.1,
       roughness: 0.6,
-      metalness: 0.1
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false
     })
 
     const mesh = new THREE.InstancedMesh(geometry, material, obstacles.length)
