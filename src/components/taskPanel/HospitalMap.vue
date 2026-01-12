@@ -391,12 +391,20 @@ function updateRouteVisual() {
   // 构建拓扑图
   const { graph, waypointByCode } = buildTopoGraph()
   
-  // 获取任务的起点和终点
-  const endpoints = getTaskEndpoints(task.id, graph)
-  if (!endpoints) return
+  // 获取任务的起点和终点：优先使用任务中指定的拓扑节点
+  let startCode, endCode
+  if (task.routeNodes && task.routeNodes.length >= 2) {
+    startCode = task.routeNodes[0]
+    endCode = task.routeNodes[task.routeNodes.length - 1]
+  } else {
+    const endpoints = getTaskEndpoints(task.id, graph)
+    if (!endpoints) return
+    startCode = endpoints.start
+    endCode = endpoints.end
+  }
   
   // BFS找路径
-  const pathCodes = findPathBFS(graph, endpoints.start, endpoints.end)
+  const pathCodes = findPathBFS(graph, startCode, endCode)
   if (!pathCodes || pathCodes.length < 2) return
   
   // 将路径转换为3D点

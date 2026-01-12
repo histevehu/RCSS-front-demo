@@ -8,7 +8,8 @@ export const tasks = [
     robotId: 'R3',
     duration: 135, // 2m15s
     estimatedTime: 210, // 3m30s
-    route: ['A楼1F M药房', 'E1电梯', 'B楼3F N诊室'],
+    // 路线由拓扑网络节点组成（同一地图）
+    routeNodes: ['floot_1:p2', 'floot_1:p4'],
     createdAt: new Date('2026-01-12T14:25:00'),
   },
   {
@@ -19,7 +20,7 @@ export const tasks = [
     robotId: 'R1',
     duration: 65, // 1m05s
     estimatedTime: 250, // 4m10s
-    route: ['2F', '楼梯', '1F'],
+    routeNodes: ['floot_2:p2', 'floot_2:p4'],
     createdAt: new Date('2026-01-12T14:26:00'),
   },
   {
@@ -41,7 +42,7 @@ export const tasks = [
     robotId: 'R2',
     duration: 180,
     estimatedTime: 240,
-    route: ['A楼2F 急诊科', 'E2电梯', 'A楼5F 病房'],
+    routeNodes: ['floot_1:p2', 'floot_1:p5'],
     createdAt: new Date('2026-01-12T14:20:00'),
   },
   {
@@ -52,7 +53,7 @@ export const tasks = [
     robotId: 'R5',
     duration: 90,
     estimatedTime: 180,
-    route: ['B楼1F 档案室', '楼梯', 'B楼3F 医生办公室'],
+    routeNodes: ['floot_2:p2', 'floot_2:p5'],
     createdAt: new Date('2026-01-12T14:22:00'),
   },
   {
@@ -63,7 +64,7 @@ export const tasks = [
     robotId: null,
     duration: 0,
     estimatedTime: 330, // 5m30s
-    route: ['A楼3F办公室', 'A楼1F护士站'],
+    routeNodes: ['floot4_inner:p2', 'floot4_inner:p4'],
     createdAt: new Date('2026-01-12T14:15:00'),
   },
   {
@@ -74,7 +75,7 @@ export const tasks = [
     robotId: null,
     duration: 0,
     estimatedTime: 135, // 2m15s
-    route: ['B楼6F X药房', 'B楼4F Z病房'],
+    routeNodes: ['floot_2:p3', 'floot_2:p5'],
     createdAt: new Date('2026-01-12T14:18:00'),
   },
   {
@@ -85,7 +86,7 @@ export const tasks = [
     robotId: null,
     duration: 0,
     estimatedTime: 0,
-    route: ['A楼2F P药房', 'C楼2F Q诊室'],
+    routeNodes: ['floot_1:p7', 'floot_1:p3'],
     createdAt: new Date('2026-01-12T14:30:00'),
   },
   {
@@ -96,7 +97,7 @@ export const tasks = [
     robotId: 'R6',
     duration: 45,
     estimatedTime: 150,
-    route: ['C楼1F 配液中心', 'E3电梯', 'C楼4F 病房'],
+    routeNodes: ['floot4_inner:p2', 'floot4_inner:p5'],
     createdAt: new Date('2026-01-12T14:27:00'),
   },
   {
@@ -107,7 +108,7 @@ export const tasks = [
     robotId: 'R7',
     duration: 120,
     estimatedTime: 200,
-    route: ['A楼3F 病房', 'E1电梯', 'A楼1F 检验科'],
+    routeNodes: ['floot_1:p2', 'floot_1:p3'],
     createdAt: new Date('2026-01-12T14:23:00'),
   },
   {
@@ -118,9 +119,9 @@ export const tasks = [
     robotId: 'R8',
     duration: 200,
     estimatedTime: 280,
-    route: ['B楼4F 手术室', 'E2电梯', 'B楼B1 消毒中心'],
+    routeNodes: ['floot_2:p3', 'floot_2:p2'],
     createdAt: new Date('2026-01-12T14:19:00'),
-  },
+  }
 ]
 
 // 已完成任务（用于统计）

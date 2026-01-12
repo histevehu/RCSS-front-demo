@@ -76,5 +76,13 @@ const priorityText = computed(() => getPriorityText(props.task.priority))
 const statusText = computed(() => getStatusText(props.task.status))
 const durationText = computed(() => formatDuration(props.task.duration))
 const estimatedText = computed(() => formatDuration(props.task.estimatedTime))
-const routeText = computed(() => props.task.route.join('→'))
+const routeText = computed(() => {
+  if (props.task.routeNodes && props.task.routeNodes.length > 0) {
+    return props.task.routeNodes.join('→')
+  }
+  if (props.task.route && props.task.route.length > 0) {
+    return props.task.route.join('→')
+  }
+  return '待计算'
+})
 </script>
