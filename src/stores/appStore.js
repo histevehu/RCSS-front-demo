@@ -128,6 +128,14 @@ export const useAppStore = defineStore('app', () => {
     currentTime.value = new Date()
   }
   
+  // 地图数据
+  const maps = ref([])
+  
+  // 设置地图数据
+  function setMaps(mapData) {
+    maps.value = mapData
+  }
+  
   return {
     currentDistrict,
     tasks,
@@ -139,10 +147,12 @@ export const useAppStore = defineStore('app', () => {
     robotStats,
     waitingQueue,
     districts,
+    maps,
     getTasksByFilter,
     selectTask,
     setDistrict,
     addTask,
     updateTime,
+    setMaps,
   }
 })
