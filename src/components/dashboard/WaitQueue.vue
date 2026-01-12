@@ -1,33 +1,24 @@
 <template>
-  <div class="bg-panel-bg border-2 border-primary rounded-lg p-4">
-    <div class="text-lg font-bold text-primary mb-3">等待队列</div>
-    
-    <div class="space-y-3 max-h-64 overflow-y-auto">
-      <div 
-        v-for="(task, index) in waitingQueue" 
+  <div class="queue-content">
+    <div class="queue-list">
+      <div
+        v-for="(task, index) in waitingQueue.slice(0, 5)"
         :key="task.id"
-        class="bg-white rounded p-3 border border-gray-200"
+        class="queue-item"
+        :class="{ 'queue-urgent': task.priority === 'urgent' }"
       >
-        <div class="flex items-start gap-2">
-          <span 
-            class="w-3 h-3 rounded-full mt-1 flex-shrink-0"
-            :class="getPriorityColor(task.priority)"
-          ></span>
-          <div class="flex-1 min-w-0">
-            <div class="font-semibold text-sm">
-              {{ index + 1 }}. {{ task.id }}-{{ task.name }}
-            </div>
-            <div class="text-xs text-gray-500 mt-1">
-              路线: {{ getRouteText(task) }}
-            </div>
-            <div class="text-xs text-gray-400">
-              等待: {{ getWaitTime(task) }}
-            </div>
+        <div class="queue-priority" :class="getPriorityClass(task.priority)"></div>
+        <div class="queue-info">
+          <div class="queue-task-header">
+            <span class="queue-id">{{ task.id }}</span>
+            <span class="queue-name">{{ task.name }}</span>
           </div>
+          <div class="queue-route">{{ getRouteText(task) }}</div>
         </div>
+        <div class="queue-time">{{ getWaitTime(task) }}</div>
       </div>
-      
-      <div v-if="waitingQueue.length === 0" class="text-center text-gray-400 py-4">
+
+      <div v-if="waitingQueue.length === 0" class="queue-empty">
         暂无等待任务
       </div>
     </div>
@@ -42,21 +33,21 @@ import { formatDuration } from '../../data/mockData'
 const store = useAppStore()
 const waitingQueue = computed(() => store.waitingQueue)
 
-function getPriorityColor(priority) {
-  const colors = {
-    urgent: 'bg-red-500',
-    normal: 'bg-yellow-500',
-    low: 'bg-green-500',
+function getPriorityClass(priority) {
+  const classes = {
+    urgent: 'priority-urgent',
+    normal: 'priority-normal',
+    low: 'priority-low'
   }
-  return colors[priority] || 'bg-gray-500'
+  return classes[priority] || 'priority-normal'
 }
 
 function getRouteText(task) {
   if (Array.isArray(task.routeNodes) && task.routeNodes.length > 0) {
-    return task.routeNodes.join('→')
+    return task.routeNodes.join(' → ')
   }
   if (Array.isArray(task.route) && task.route.length > 0) {
-    return task.route.join('→')
+    return task.route.join(' → ')
   }
   return '待计算'
 }
@@ -66,7 +57,127 @@ function getWaitTime(task) {
   const now = new Date()
   const created = new Date(task.createdAt)
   const diffSeconds = Math.floor((now - created) / 1000)
-  if (diffSeconds <= 0) return '0m (新任务)'
+  if (diffSeconds <= 0) return '新'
   return formatDuration(diffSeconds)
 }
 </script>
+
+<style scoped>
+.queue-content {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  overflow: hidden;
+}
+
+.queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.queue-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.queue-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.queue-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.15s ease;
+}
+
+.queue-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.queue-urgent {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.queue-priority {
+  width: 4px;
+  height: 28px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.priority-urgent {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.priority-normal {
+  background: #f59e0b;
+}
+
+.priority-low {
+  background: #10b981;
+}
+
+.queue-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.queue-task-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.queue-id {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.queue-name {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-route {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-time {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.queue-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+}
+</style>

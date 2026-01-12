@@ -1,83 +1,51 @@
 <template>
-  <div class="bg-panel-bg border-2 border-primary rounded-lg p-4">
-    <div class="text-lg font-bold text-primary mb-3">核心性能仪表盘</div>
-    
-    <!-- 冲突解决效率 -->
-    <div class="mb-4">
-      <div class="text-sm font-semibold text-gray-700 mb-2">冲突解决效率：</div>
-      <ProgressBar :value="conflictStats.efficiency" :trend="conflictStats.trend" />
-      <div class="flex justify-between text-xs text-gray-600 mt-2">
-        <span>共计: {{ conflictStats.total }}起</span>
-        <span>近1小时解决: {{ conflictStats.recentResolved }}起</span>
+  <div class="perf-content">
+    <div class="perf-top">
+      <div class="perf-card">
+        <div class="perf-label">冲突解决效率</div>
+        <div class="perf-value">
+          {{ conflictStats.efficiency }}%
+          <span :class="conflictStats.trend >= 0 ? 'trend-up' : 'trend-down'">
+            {{ conflictStats.trend >= 0 ? '↑' : '↓' }}{{ Math.abs(conflictStats.trend) }}%
+          </span>
+        </div>
       </div>
-      <div class="text-xs text-gray-500 mt-1">
-        冲突多发区: {{ conflictStats.hotspot }}
+
+      <div class="perf-card">
+        <div class="perf-label">今日冲突</div>
+        <div class="perf-value">{{ conflictStats.total }}</div>
+        <div class="perf-sub">近1小时解决 {{ conflictStats.recentResolved }}</div>
       </div>
     </div>
-    
-    <!-- 垂直资源利用率 -->
-    <div>
-      <div class="text-sm font-semibold text-gray-700 mb-2">垂直资源利用率：</div>
-      
-      <div class="grid grid-cols-2 gap-4">
-        <!-- 楼梯 -->
-        <div>
-          <div class="text-xs text-gray-500 mb-2">楼梯</div>
-          <div class="space-y-2">
-            <div 
-              v-for="res in stairs" 
-              :key="res.name"
-              class="flex items-center gap-2 text-xs"
-            >
-              <span class="w-20 truncate">{{ res.name }}</span>
-              <div class="flex-1 h-2 bg-gray-300 rounded overflow-hidden">
-                <div 
-                  class="h-full bg-blue-500"
-                  :style="{ width: `${res.utilization}%` }"
-                ></div>
-              </div>
-              <span class="w-16 text-right">
-                {{ res.utilization }}%
-                <span :class="res.trend >= 0 ? 'text-green-500' : 'text-red-500'">
-                  {{ res.trend >= 0 ? '▲' : '▼' }}{{ Math.abs(res.trend) }}%
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 电梯 -->
-        <div>
-          <div class="text-xs text-gray-500 mb-2">电梯</div>
-          <div class="space-y-2">
-            <div 
-              v-for="res in elevators" 
-              :key="res.name"
-              class="flex items-center gap-2 text-xs"
-            >
-              <span class="w-24 truncate">{{ res.name }}</span>
-              <div class="flex-1 h-2 bg-gray-300 rounded overflow-hidden">
-                <div 
-                  class="h-full bg-green-500"
-                  :style="{ width: `${res.utilization}%` }"
-                ></div>
-              </div>
-              <span class="w-16 text-right">
-                {{ res.utilization }}%
-                <span :class="res.trend >= 0 ? 'text-green-500' : 'text-red-500'">
-                  {{ res.trend >= 0 ? '▲' : '▼' }}{{ Math.abs(res.trend) }}%
-                </span>
-              </span>
-            </div>
+
+    <div class="perf-title">垂直资源利用率</div>
+
+    <div class="perf-grid">
+      <div>
+        <div class="perf-subtitle">楼梯</div>
+        <div class="bar-list">
+          <div v-for="res in stairs" :key="res.name" class="bar-row">
+            <span class="bar-name">{{ res.name }}</span>
+            <div class="bar-track"><div class="bar-fill bar-blue" :style="{ width: `${res.utilization}%` }"></div></div>
+            <span class="bar-val">{{ res.utilization }}%</span>
           </div>
         </div>
       </div>
-      
-      <!-- 汇总 -->
-      <div class="flex justify-between text-xs text-gray-600 mt-3 pt-3 border-t">
-        <span>楼梯利用率: {{ avgStairUtilization }}% ↓</span>
-        <span>电梯利用率: {{ avgElevatorUtilization }}% ↑</span>
+      <div>
+        <div class="perf-subtitle">电梯</div>
+        <div class="bar-list">
+          <div v-for="res in elevators" :key="res.name" class="bar-row">
+            <span class="bar-name">{{ res.name }}</span>
+            <div class="bar-track"><div class="bar-fill bar-green" :style="{ width: `${res.utilization}%` }"></div></div>
+            <span class="bar-val">{{ res.utilization }}%</span>
+          </div>
+        </div>
       </div>
+    </div>
+
+    <div class="perf-footer">
+      <span>楼梯均值 <b>{{ avgStairUtilization }}%</b></span>
+      <span>电梯均值 <b>{{ avgElevatorUtilization }}%</b></span>
     </div>
   </div>
 </template>
@@ -85,15 +53,9 @@
 <script setup>
 import { computed } from 'vue'
 import { conflictStats, verticalResources } from '../../data/mockData'
-import ProgressBar from '../common/ProgressBar.vue'
 
-const stairs = computed(() => 
-  verticalResources.filter(r => r.type === 'stair')
-)
-
-const elevators = computed(() => 
-  verticalResources.filter(r => r.type === 'elevator')
-)
+const stairs = computed(() => verticalResources.filter(r => r.type === 'stair'))
+const elevators = computed(() => verticalResources.filter(r => r.type === 'elevator'))
 
 const avgStairUtilization = computed(() => {
   const s = stairs.value
@@ -105,3 +67,73 @@ const avgElevatorUtilization = computed(() => {
   return Math.round(e.reduce((sum, r) => sum + r.utilization, 0) / e.length)
 })
 </script>
+
+<style scoped>
+.perf-content {
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+.perf-top {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.perf-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.perf-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.perf-value {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-up { color: #34d399; font-size: 12px; margin-left: 8px; }
+.trend-down { color: #f87171; font-size: 12px; margin-left: 8px; }
+
+.perf-sub { font-size: 11px; color: rgba(255, 255, 255, 0.45); margin-top: 2px; }
+
+.perf-title {
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.perf-grid {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.perf-subtitle { font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-bottom: 6px; }
+
+.bar-list { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.bar-name { width: 68px; color: rgba(255, 255, 255, 0.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { flex: 1; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.bar-blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.bar-green { background: linear-gradient(90deg, #10b981, #34d399); }
+.bar-val { width: 38px; text-align: right; color: rgba(255, 255, 255, 0.75); font-variant-numeric: tabular-nums; }
+
+.perf-footer { margin-top: 10px; display: flex; justify-content: space-between; font-size: 11px; color: rgba(255, 255, 255, 0.65); }
+.perf-footer b { color: rgba(255, 255, 255, 0.9); }
+</style>

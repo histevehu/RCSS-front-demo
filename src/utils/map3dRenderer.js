@@ -33,10 +33,10 @@ export class Map3DRenderer {
     const width = this.container.clientWidth || 800
     const height = this.container.clientHeight || 600
 
-    // 场景 - 深灰蓝色背景
+    // 场景 - 深色背景匹配主题
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0x2C3E50)
-    this.scene.fog = new THREE.Fog(0x34495E, 80, 220)
+    this.scene.background = new THREE.Color(0x0a0e14)
+    this.scene.fog = new THREE.Fog(0x0a0e14, 100, 280)
 
     // 相机
     this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000)
