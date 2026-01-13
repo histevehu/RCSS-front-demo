@@ -13,15 +13,15 @@
       <!-- 核心指标卡片 -->
       <div class="glass-panel stats-panel">
         <div class="stats-grid">
-          <div class="stat-item stat-executing">
+          <div class="stat-item stat-executing stat-clickable" @click="handleNavigate('executing')">
             <div class="stat-value">{{ stats.executing }}</div>
             <div class="stat-label">执行中</div>
           </div>
-          <div class="stat-item stat-waiting">
+          <div class="stat-item stat-waiting stat-clickable" @click="handleNavigate('waiting')">
             <div class="stat-value">{{ stats.waiting }}</div>
             <div class="stat-label">等待中</div>
           </div>
-          <div class="stat-item stat-completed">
+          <div class="stat-item stat-completed stat-clickable" @click="handleNavigate('completed')">
             <div class="stat-value">{{ stats.completed }}</div>
             <div class="stat-label">已完成</div>
           </div>
@@ -230,6 +230,14 @@ function handleCreateTask(task) {
 .stat-executing .stat-value { color: #3b82f6; }
 .stat-waiting .stat-value { color: #f59e0b; }
 .stat-completed .stat-value { color: #10b981; }
+
+.stat-clickable {
+  cursor: pointer;
+}
+
+.stat-clickable:active {
+  transform: translateY(0) scale(0.98);
+}
 
 /* 完成率进度条 */
 .completion-bar {
