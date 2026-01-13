@@ -1,46 +1,46 @@
 <template>
   <div class="task-page">
-    <!-- 3D地图作为背景 -->
+    <!-- 3D map as background -->
     <div class="task-map-bg">
       <HospitalMap />
     </div>
 
-    <!-- 顶部导航 -->
-    <Header title="任务面板">
+    <!-- Top navigation -->
+    <Header title="Task Panel">
       <template #actions>
         <button @click="showGantt = true" class="header-btn">
-          [任务时间线（甘特图）]
+          [Task Timeline (Gantt)]
         </button>
         <button @click="showLogs = true" class="header-btn">
-          [任务日志]
+          [Task Logs]
         </button>
         <button @click="showTaskForm = true" class="header-btn-primary">
-          + 新建任务
+          + New Task
         </button>
       </template>
     </Header>
 
-    <!-- 左侧任务列表面板 -->
+    <!-- Left task list panel -->
     <aside class="task-sidebar">
       <TaskList :initial-filter="initialFilter" />
     </aside>
 
-    <!-- 甘特图弹窗 -->
-    <Modal v-model="showGantt" title="任务时间线（甘特图）" size="xl">
+    <!-- Gantt chart modal -->
+    <Modal v-model="showGantt" title="Task Timeline (Gantt)" size="xl">
       <div class="h-[500px]">
         <GanttChart />
       </div>
     </Modal>
 
-    <!-- 任务日志弹窗 -->
-    <Modal v-model="showLogs" title="任务日志" size="md">
+    <!-- Task log modal -->
+    <Modal v-model="showLogs" title="Task Logs" size="md">
       <div class="h-[400px]">
         <TaskLog />
       </div>
     </Modal>
 
-    <!-- 新建任务弹窗 -->
-    <Modal v-model="showTaskForm" title="新建任务" size="md">
+    <!-- New task modal -->
+    <Modal v-model="showTaskForm" title="New Task" size="md">
       <TaskForm @submit="handleCreateTask" @cancel="showTaskForm = false" />
     </Modal>
   </div>

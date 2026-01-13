@@ -5,30 +5,30 @@
       <MapOverview ref="mapRef" />
     </div>
 
-    <!-- 顶部导航栏 -->
-    <Header title="任务调度中心" />
+    <!-- Top navigation bar -->
+    <Header title="Task Dispatch Center" />
 
-    <!-- 左侧面板组 -->
+    <!-- Left panels -->
     <aside class="dashboard-left">
-      <!-- 核心指标卡片 -->
+      <!-- Key metrics cards -->
       <div class="glass-panel stats-panel">
         <div class="stats-grid">
           <div class="stat-item stat-executing stat-clickable" @click="handleNavigate('executing')">
             <div class="stat-value">{{ stats.executing }}</div>
-            <div class="stat-label">执行中</div>
+            <div class="stat-label">In Progress</div>
           </div>
           <div class="stat-item stat-waiting stat-clickable" @click="handleNavigate('waiting')">
             <div class="stat-value">{{ stats.waiting }}</div>
-            <div class="stat-label">等待中</div>
+            <div class="stat-label">Waiting</div>
           </div>
           <div class="stat-item stat-completed stat-clickable" @click="handleNavigate('completed')">
             <div class="stat-value">{{ stats.completed }}</div>
-            <div class="stat-label">已完成</div>
+            <div class="stat-label">Completed</div>
           </div>
         </div>
         <div class="completion-bar">
           <div class="completion-header">
-            <span>完成率</span>
+            <span>Completion Rate</span>
             <span class="completion-value">{{ stats.completionRate }}%</span>
           </div>
           <div class="completion-track">
@@ -37,11 +37,11 @@
         </div>
       </div>
 
-      <!-- 机器人状态 -->
+      <!-- Robot status -->
       <div class="glass-panel robot-panel">
         <div class="panel-header">
-          <span class="panel-title">机器人</span>
-          <span class="panel-badge">{{ robotStats.total }} 在线</span>
+          <span class="panel-title">Robots</span>
+          <span class="panel-badge">{{ robotStats.total }} Online</span>
         </div>
         <RobotStatus />
       </div>
@@ -49,46 +49,46 @@
 
     <!-- 右侧面板组 -->
     <aside class="dashboard-right">
-      <!-- 楼层分布 -->
+      <!-- Task distribution -->
       <div class="glass-panel heatmap-panel">
         <div class="panel-header">
-          <span class="panel-title">任务分布</span>
+          <span class="panel-title">Task Distribution</span>
         </div>
         <HeatMap />
       </div>
 
-      <!-- 等待队列 -->
+      <!-- Waiting queue -->
       <div class="glass-panel queue-panel">
         <div class="panel-header">
-          <span class="panel-title">等待队列</span>
+          <span class="panel-title">Waiting Queue</span>
           <span class="panel-badge queue-badge">{{ waitingQueue.length }}</span>
         </div>
         <WaitQueue />
       </div>
     </aside>
 
-    <!-- 底部性能条 -->
+    <!-- Bottom performance bar -->
     <div class="dashboard-bottom">
       <PerformancePanel />
     </div>
 
-    <!-- 紧急任务提示（悬浮在地图上） -->
+    <!-- Urgent task indicator (floating over the map) -->
     <div v-if="stats.urgent > 0" class="urgent-alert">
       <div class="urgent-pulse"></div>
       <span class="urgent-count">{{ stats.urgent }}</span>
-      <span class="urgent-text">紧急任务</span>
+      <span class="urgent-text">Urgent Tasks</span>
     </div>
 
-    <!-- 新建任务按钮 -->
+    <!-- New task button -->
     <button @click="showTaskForm = true" class="fab-button">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <span>新建任务</span>
+      <span>New Task</span>
     </button>
 
-    <!-- 新建任务弹窗 -->
-    <Modal v-model="showTaskForm" title="新建任务" size="md">
+    <!-- New task modal -->
+    <Modal v-model="showTaskForm" title="New Task" size="md">
       <TaskForm @submit="handleCreateTask" @cancel="showTaskForm = false" />
     </Modal>
   </div>

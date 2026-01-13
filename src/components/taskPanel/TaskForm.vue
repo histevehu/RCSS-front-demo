@@ -1,12 +1,12 @@
 <template>
   <form @submit.prevent="handleSubmit" class="form-container">
     <div class="form-group">
-      <label class="form-label">任务名称</label>
-      <input v-model="form.name" type="text" required placeholder="请输入任务名称" class="form-input">
+      <label class="form-label">Task Name</label>
+      <input v-model="form.name" type="text" required placeholder="Enter task name" class="form-input">
     </div>
 
     <div class="form-group">
-      <label class="form-label">优先级</label>
+      <label class="form-label">Priority</label>
       <div class="priority-options">
         <label v-for="p in priorities" :key="p.value" class="priority-option">
           <input type="radio" v-model="form.priority" :value="p.value" class="priority-radio">
@@ -16,34 +16,34 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">起点</label>
+      <label class="form-label">Start</label>
       <select v-model="form.startLocation" required class="form-select">
-        <option value="">请选择起点</option>
+        <option value="">Select start location</option>
         <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
       </select>
     </div>
 
     <div class="form-group">
-      <label class="form-label">终点</label>
+      <label class="form-label">End</label>
       <select v-model="form.endLocation" required class="form-select">
-        <option value="">请选择终点</option>
+        <option value="">Select end location</option>
         <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
       </select>
     </div>
 
     <div class="form-group">
-      <label class="form-label">预计时间（分钟）</label>
+      <label class="form-label">Estimated time (minutes)</label>
       <input v-model.number="form.estimatedMinutes" type="number" min="1" max="60" placeholder="5" class="form-input">
     </div>
 
     <div class="form-group">
-      <label class="form-label">备注</label>
-      <textarea v-model="form.notes" rows="2" placeholder="可选" class="form-textarea"></textarea>
+      <label class="form-label">Notes</label>
+      <textarea v-model="form.notes" rows="2" placeholder="Optional" class="form-textarea"></textarea>
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn-primary">创建任务</button>
-      <button type="button" @click="$emit('cancel')" class="btn-secondary">取消</button>
+      <button type="submit" class="btn-primary">Create Task</button>
+      <button type="button" @click="$emit('cancel')" class="btn-secondary">Cancel</button>
     </div>
   </form>
 </template>
@@ -63,24 +63,24 @@ const form = reactive({
 })
 
 const priorities = [
-  { value: 'urgent', label: '紧急', class: 'tag-urgent' },
-  { value: 'normal', label: '普通', class: 'tag-normal' },
-  { value: 'low', label: '低优', class: 'tag-low' },
+  { value: 'urgent', label: 'Urgent', class: 'tag-urgent' },
+  { value: 'normal', label: 'Normal', class: 'tag-normal' },
+  { value: 'low', label: 'Low', class: 'tag-low' },
 ]
 
 const locations = [
-  'A楼1F 药房',
-  'A楼2F 急诊科',
-  'A楼3F 病房',
-  'A楼4F 手术室',
-  'B楼1F 检验科',
-  'B楼2F 门诊',
-  'B楼3F 病房',
-  'B楼4F 办公室',
-  'C楼1F 配液中心',
-  'C楼2F 诊室',
-  'C楼3F 病房',
-  'C楼4F 康复科',
+  'Building A 1F Pharmacy',
+  'Building A 2F Emergency',
+  'Building A 3F Ward',
+  'Building A 4F Operating Room',
+  'Building B 1F Laboratory',
+  'Building B 2F Outpatient',
+  'Building B 3F Ward',
+  'Building B 4F Office',
+  'Building C 1F Infusion Center',
+  'Building C 2F Clinic',
+  'Building C 3F Ward',
+  'Building C 4F Rehabilitation',
 ]
 
 function handleSubmit() {

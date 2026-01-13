@@ -19,7 +19,7 @@
       <div class="header-right">
         <div class="status-indicator">
           <span class="status-dot"></span>
-          <span class="status-text">在线</span>
+          <span class="status-text">Online</span>
         </div>
         <div class="header-time">{{ currentTimeStr }}</div>
         <slot name="actions"></slot>
@@ -35,7 +35,7 @@ import { useAppStore } from '../../stores/appStore'
 defineProps({
   title: {
     type: String,
-    default: '任务调度中心'
+    default: 'Task Dispatch Center'
   }
 })
 

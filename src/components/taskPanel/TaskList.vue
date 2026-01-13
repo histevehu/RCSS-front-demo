@@ -1,6 +1,6 @@
 <template>
   <div class="task-list">
-    <!-- 筛选标签 -->
+    <!-- Filter tabs -->
     <div class="filter-bar">
       <button
         v-for="f in filters"
@@ -13,7 +13,7 @@
       </button>
     </div>
 
-    <!-- 任务列表 -->
+    <!-- Task list -->
     <div class="task-scroll">
       <TaskCard
         v-for="task in filteredTasks"
@@ -24,13 +24,13 @@
       />
 
       <div v-if="filteredTasks.length === 0" class="empty-state">
-        暂无任务
+        No tasks
       </div>
     </div>
 
-    <!-- 底部统计 -->
+    <!-- Footer stats -->
     <div class="task-footer">
-      总计: {{ totalTasks }} 任务 | 进行中: {{ executingCount }}
+      Total: {{ totalTasks }} tasks | In progress: {{ executingCount }}
     </div>
   </div>
 </template>
@@ -52,10 +52,10 @@ const emit = defineEmits(['selectTask'])
 const store = useAppStore()
 
 const filters = [
-  { label: '全部', value: 'all' },
-  { label: '紧急', value: 'urgent' },
-  { label: '进行中', value: 'executing' },
-  { label: '今日', value: 'today' },
+  { label: 'All', value: 'all' },
+  { label: 'Urgent', value: 'urgent' },
+  { label: 'In Progress', value: 'executing' },
+  { label: 'Today', value: 'today' },
 ]
 
 const currentFilter = ref(props.initialFilter)

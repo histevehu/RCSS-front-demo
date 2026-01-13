@@ -1,5 +1,5 @@
 /**
- * Vue 3 应用入口
+ * Vue 3 app entry
  */
 
 import { createApp } from 'vue'
@@ -8,14 +8,14 @@ import App from './App.vue'
 import router from './router'
 import './style.css'
 
-// 创建 Vue 应用
+// Create Vue app
 const app = createApp(App)
 
-// 使用 Pinia 状态管理
+// Use Pinia state management
 app.use(createPinia())
 
-// 使用路由
+// Use router
 app.use(router)
 
-// 挂载到 #app
+// Mount to #app
 app.mount('#app')

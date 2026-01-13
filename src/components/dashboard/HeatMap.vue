@@ -32,9 +32,9 @@
 import { hotspots } from '../../data/mockData'
 
 const buildings = [
-  { id: 'A', name: 'A楼', taskCount: 8 },
-  { id: 'B', name: 'B楼', taskCount: 6 },
-  { id: 'C', name: 'C楼', taskCount: 4 }
+  { id: 'A', name: 'Building A', taskCount: 8 },
+  { id: 'B', name: 'Building B', taskCount: 6 },
+  { id: 'C', name: 'Building C', taskCount: 4 }
 ]
 
 function getBuildingClass(id) {

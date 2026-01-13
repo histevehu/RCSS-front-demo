@@ -1,15 +1,15 @@
 <template>
   <div class="task-mini">
     <div class="mini-row">
-      <span class="mini-label">紧急</span>
+      <span class="mini-label">Urgent</span>
       <span class="mini-value urgent">{{ stats.urgent }}</span>
     </div>
     <div class="mini-row">
-      <span class="mini-label">峰值</span>
+      <span class="mini-label">Peak</span>
       <span class="mini-value">{{ stats.taskPeak }} · {{ stats.taskPeakTime }}</span>
     </div>
     <div class="mini-row">
-      <span class="mini-label">平均用时</span>
+      <span class="mini-label">Average Duration</span>
       <span class="mini-value">{{ stats.avgCompletionTime }}</span>
     </div>
   </div>

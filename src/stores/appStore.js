@@ -3,25 +3,25 @@ import { ref, computed } from 'vue'
 import { tasks as mockTasks, robots as mockRobots, completedTasks, districts, taskLogs as mockLogs } from '../data/mockData'
 
 export const useAppStore = defineStore('app', () => {
-  // 当前院区
+  // Current campus
   const currentDistrict = ref('east')
   
-  // 任务列表
+  // Task list
   const tasks = ref([...mockTasks])
   
-  // 机器人列表
+  // Robot list
   const robots = ref([...mockRobots])
   
-  // 任务日志
+  // Task logs
   const taskLogs = ref([...mockLogs])
   
-  // 选中的任务ID
+  // Selected task ID
   const selectedTaskId = ref(null)
   
-  // 当前时间
+  // Current time
   const currentTime = ref(new Date())
   
-  // 统计数据
+  // Statistics
   const stats = computed(() => {
     const executing = tasks.value.filter(t => t.status === 'executing').length
     const waiting = tasks.value.filter(t => t.status === 'waiting').length
@@ -36,7 +36,7 @@ export const useAppStore = defineStore('app', () => {
       total: tasks.value.length + completed,
       taskPeak: 15,
       taskPeakTime: '10:30',
-      avgCompletionTime: '5分12秒',
+      avgCompletionTime: '5m12s',
       completionRate: 98,
       completionTrend: 2,
       peakRate: 98,
@@ -46,7 +46,7 @@ export const useAppStore = defineStore('app', () => {
     }
   })
   
-  // 机器人统计
+  // Robot statistics
   const robotStats = computed(() => {
     const executing = robots.value.filter(r => r.status === 'executing').length
     const idle = robots.value.filter(r => r.status === 'idle').length
@@ -64,7 +64,7 @@ export const useAppStore = defineStore('app', () => {
     }
   })
   
-  // 按状态筛选任务
+  // Filter tasks by status
   const getTasksByFilter = (filter) => {
     switch (filter) {
       case 'urgent':
@@ -80,7 +80,7 @@ export const useAppStore = defineStore('app', () => {
     }
   }
   
-  // 等待队列
+  // Waiting queue
   const waitingQueue = computed(() => {
     return tasks.value
       .filter(t => t.status === 'waiting')
@@ -91,17 +91,17 @@ export const useAppStore = defineStore('app', () => {
       })
   })
   
-  // 选择任务
+  // Select task
   function selectTask(taskId) {
     selectedTaskId.value = taskId
   }
   
-  // 切换院区
+  // Switch campus
   function setDistrict(districtId) {
     currentDistrict.value = districtId
   }
   
-  // 添加新任务
+  // Add new task
   function addTask(task) {
     const newTask = {
       id: `T${String(tasks.value.length + completedTasks.length + 1).padStart(3, '0')}`,
@@ -112,26 +112,26 @@ export const useAppStore = defineStore('app', () => {
     }
     tasks.value.unshift(newTask)
     
-    // 添加日志
+    // Add log
     taskLogs.value.unshift({
-      time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       type: 'create',
       taskId: newTask.id,
-      message: `创建${task.priority === 'urgent' ? '紧急' : ''}任务: ${task.name}`,
+      message: `Created ${task.priority === 'urgent' ? 'urgent ' : ''}task: ${task.name}`,
     })
     
     return newTask
   }
   
-  // 更新时间
+  // Update time
   function updateTime() {
     currentTime.value = new Date()
   }
   
-  // 地图数据
+  // Map data
   const maps = ref([])
   
-  // 设置地图数据
+  // Set map data
   function setMaps(mapData) {
     maps.value = mapData
   }

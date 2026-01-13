@@ -19,7 +19,7 @@
       </div>
 
       <div v-if="waitingQueue.length === 0" class="queue-empty">
-        暂无等待任务
+        No waiting tasks
       </div>
     </div>
   </div>
@@ -49,7 +49,7 @@ function getRouteText(task) {
   if (Array.isArray(task.route) && task.route.length > 0) {
     return task.route.join(' → ')
   }
-  return '待计算'
+  return 'Pending'
 }
 
 function getWaitTime(task) {
@@ -57,7 +57,7 @@ function getWaitTime(task) {
   const now = new Date()
   const created = new Date(task.createdAt)
   const diffSeconds = Math.floor((now - created) / 1000)
-  if (diffSeconds <= 0) return '新'
+  if (diffSeconds <= 0) return 'New'
   return formatDuration(diffSeconds)
 }
 </script>

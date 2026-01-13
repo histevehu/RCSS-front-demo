@@ -3,25 +3,25 @@
     <!-- 3D画布容器 -->
     <div ref="containerRef" class="map-canvas"></div>
 
-    <!-- 加载状态 -->
+    <!-- Loading state -->
     <div v-if="loading" class="map-loading">
       <div class="loading-spinner"></div>
-      <span>加载 3D 地图中…</span>
+      <span>Loading 3D map...</span>
     </div>
 
-    <!-- 错误状态 -->
+    <!-- Error state -->
     <div v-else-if="error" class="map-error">
       {{ error }}
     </div>
 
-    <!-- 左上角提示 -->
+    <!-- Top-left hint -->
     <div v-if="!loading && !error" class="map-hint">
-      鼠标左键旋转 · 右键平移 · 滚轮缩放
+      Left mouse: rotate · Right mouse: pan · Scroll: zoom
     </div>
 
-    <!-- 重置视角按钮 -->
+    <!-- Reset view button -->
     <button v-if="!loading && !error" class="map-reset-btn" @click="resetCamera">
-      重置视角
+      Reset View
     </button>
   </div>
 </template>
@@ -44,7 +44,7 @@ onMounted(async () => {
 
     const allMaps = await loadAllMaps('./maps')
     if (allMaps.length === 0) {
-      throw new Error('没有加载到任何地图数据')
+      throw new Error('No map data loaded')
     }
 
     calculateMapOffsets(allMaps, allMaps[0].mapName)

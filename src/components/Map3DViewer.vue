@@ -1,12 +1,12 @@
 <template>
   <div class="map3d-viewer">
-    <!-- 控制面板 -->
+    <!-- Control panel -->
     <div class="control-panel">
-      <h3>3D 地图查看器</h3>
+      <h3>3D Map Viewer</h3>
       
       <div v-if="loading" class="status">
         <span class="loading-spinner"></span>
-        加载中...
+        Loading...
       </div>
       
       <div v-else-if="error" class="status error">
@@ -15,7 +15,7 @@
       
       <template v-else>
         <div class="section">
-          <h4>地图列表</h4>
+          <h4>Map List</h4>
           <div class="map-list">
             <label v-for="map in maps" :key="map.mapName" class="map-item">
               <input 
@@ -24,29 +24,29 @@
                 @change="toggleMap(map.mapName)"
               />
               <span class="map-name">{{ map.mapName }}</span>
-              <span class="map-floor">楼层: {{ map.floor }}</span>
+              <span class="map-floor">Floor: {{ map.floor }}</span>
             </label>
           </div>
         </div>
         
         <div class="section">
-          <h4>操作</h4>
-          <button @click="resetCamera" class="btn">重置视角</button>
+          <h4>Actions</h4>
+          <button @click="resetCamera" class="btn">Reset View</button>
         </div>
         
         <div class="section legend">
-          <h4>图例</h4>
+          <h4>Legend</h4>
           <div class="legend-item">
-            <span class="dot blue"></span> 起点
+            <span class="dot blue"></span> Start
           </div>
           <div class="legend-item">
-            <span class="dot red"></span> 终点
+            <span class="dot red"></span> End
           </div>
           <div class="legend-item">
-            <span class="dot green"></span> 中间点
+            <span class="dot green"></span> Waypoint
           </div>
           <div class="legend-item">
-            <span class="dot purple"></span> 跨图连接点
+            <span class="dot purple"></span> Cross-map connector
           </div>
         </div>
       </template>
@@ -76,7 +76,7 @@ onMounted(async () => {
     const allMaps = await loadAllMaps('./maps')
 
     if (allMaps.length === 0) {
-      throw new Error('没有加载到任何地图数据')
+      throw new Error('No map data loaded')
     }
 
     maps.value = allMaps
@@ -94,7 +94,7 @@ onMounted(async () => {
 
     loading.value = false
   } catch (err) {
-    console.error('初始化失败:', err)
+    console.error('Initialization failed:', err)
     error.value = err.message
     loading.value = false
   }

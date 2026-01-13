@@ -1,8 +1,8 @@
-// 模拟任务数据
+// Mock task data
 export const tasks = [
   {
     id: 'T001',
-    name: 'ICU送药',
+    name: 'ICU Medicine Delivery',
     priority: 'urgent',
     status: 'executing',
     robotId: 'R3',
@@ -14,7 +14,7 @@ export const tasks = [
   },
   {
     id: 'T002',
-    name: '检验样本',
+    name: 'Lab Sample',
     priority: 'normal',
     status: 'executing',
     robotId: 'R1',
@@ -25,18 +25,18 @@ export const tasks = [
   },
   {
     id: 'T003',
-    name: '日常物资',
+    name: 'Daily Supplies',
     priority: 'low',
     status: 'waiting',
     robotId: 'R4',
     duration: 0,
     estimatedTime: 380, // 6m20s
-    route: ['待计算'],
+    route: ['Pending'],
     createdAt: new Date('2026-01-12T14:28:00'),
   },
   {
     id: 'T004',
-    name: '急诊药品',
+    name: 'Emergency Medicine',
     priority: 'urgent',
     status: 'executing',
     robotId: 'R2',
@@ -47,7 +47,7 @@ export const tasks = [
   },
   {
     id: 'T005',
-    name: '病历文件',
+    name: 'Medical Records',
     priority: 'normal',
     status: 'executing',
     robotId: 'R5',
@@ -58,7 +58,7 @@ export const tasks = [
   },
   {
     id: 'T006',
-    name: '文件传递',
+    name: 'Document Delivery',
     priority: 'low',
     status: 'waiting',
     robotId: null,
@@ -69,7 +69,7 @@ export const tasks = [
   },
   {
     id: 'T007',
-    name: '日常物资',
+    name: 'Daily Supplies',
     priority: 'normal',
     status: 'waiting',
     robotId: null,
@@ -80,7 +80,7 @@ export const tasks = [
   },
   {
     id: 'T008',
-    name: '紧急送药',
+    name: 'Urgent Medicine Delivery',
     priority: 'urgent',
     status: 'waiting',
     robotId: null,
@@ -91,7 +91,7 @@ export const tasks = [
   },
   {
     id: 'T009',
-    name: '输液配送',
+    name: 'Infusion Delivery',
     priority: 'normal',
     status: 'executing',
     robotId: 'R6',
@@ -102,7 +102,7 @@ export const tasks = [
   },
   {
     id: 'T010',
-    name: '标本运送',
+    name: 'Specimen Transport',
     priority: 'normal',
     status: 'executing',
     robotId: 'R7',
@@ -113,7 +113,7 @@ export const tasks = [
   },
   {
     id: 'T011',
-    name: '器械回收',
+    name: 'Instrument Collection',
     priority: 'low',
     status: 'executing',
     robotId: 'R8',
@@ -124,80 +124,80 @@ export const tasks = [
   }
 ]
 
-// 已完成任务（用于统计）
+// Completed tasks (for statistics)
 export const completedTasks = Array.from({ length: 62 }, (_, i) => ({
   id: `TC${String(i + 1).padStart(3, '0')}`,
-  name: ['送药', '检验', '物资', '文件'][i % 4],
+  name: ['Medicine Delivery', 'Lab Test', 'Supplies', 'Documents'][i % 4],
   priority: ['urgent', 'normal', 'low'][i % 3],
   status: 'completed',
   completedAt: new Date(Date.now() - Math.random() * 8 * 60 * 60 * 1000),
 }))
 
-// 机器人数据
+// Robot data
 export const robots = [
-  { id: 'R1', status: 'executing', position: { building: 'A', floor: '2F', location: '走廊' }, currentTaskId: 'T002' },
-  { id: 'R2', status: 'executing', position: { building: 'A', floor: '3F', location: 'E2电梯' }, currentTaskId: 'T004' },
-  { id: 'R3', status: 'executing', position: { building: 'B', floor: '2F', location: 'E1电梯' }, currentTaskId: 'T001' },
-  { id: 'R4', status: 'executing', position: { building: 'A', floor: '1F', location: '药房' }, currentTaskId: 'T003' },
-  { id: 'R5', status: 'executing', position: { building: 'B', floor: '2F', location: '楼梯' }, currentTaskId: 'T005' },
-  { id: 'R6', status: 'executing', position: { building: 'C', floor: '2F', location: 'E3电梯' }, currentTaskId: 'T009' },
-  { id: 'R7', status: 'executing', position: { building: 'A', floor: '2F', location: '走廊' }, currentTaskId: 'T010' },
-  { id: 'R8', status: 'executing', position: { building: 'B', floor: '2F', location: 'E2电梯' }, currentTaskId: 'T011' },
+  { id: 'R1', status: 'executing', position: { building: 'A', floor: '2F', location: 'Corridor' }, currentTaskId: 'T002' },
+  { id: 'R2', status: 'executing', position: { building: 'A', floor: '3F', location: 'Elevator E2' }, currentTaskId: 'T004' },
+  { id: 'R3', status: 'executing', position: { building: 'B', floor: '2F', location: 'Elevator E1' }, currentTaskId: 'T001' },
+  { id: 'R4', status: 'executing', position: { building: 'A', floor: '1F', location: 'Pharmacy' }, currentTaskId: 'T003' },
+  { id: 'R5', status: 'executing', position: { building: 'B', floor: '2F', location: 'Stair' }, currentTaskId: 'T005' },
+  { id: 'R6', status: 'executing', position: { building: 'C', floor: '2F', location: 'Elevator E3' }, currentTaskId: 'T009' },
+  { id: 'R7', status: 'executing', position: { building: 'A', floor: '2F', location: 'Corridor' }, currentTaskId: 'T010' },
+  { id: 'R8', status: 'executing', position: { building: 'B', floor: '2F', location: 'Elevator E2' }, currentTaskId: 'T011' },
 ]
 
-// 垂直资源利用率
+// Vertical resource utilization
 export const verticalResources = [
-  { name: 'A楼 Stair1', type: 'stair', utilization: 20, trend: 3 },
-  { name: 'A楼 Stair2', type: 'stair', utilization: 20, trend: -2 },
-  { name: 'B楼 Stair1', type: 'stair', utilization: 20, trend: 3 },
-  { name: 'B楼 Stair2', type: 'stair', utilization: 20, trend: 3 },
-  { name: 'C楼 Stair1', type: 'stair', utilization: 20, trend: 3 },
-  { name: 'C楼 Stair2', type: 'stair', utilization: 20, trend: 3 },
-  { name: 'A楼 Elevator1', type: 'elevator', utilization: 20, trend: 3 },
-  { name: 'A楼 Elevator2', type: 'elevator', utilization: 50, trend: -2 },
-  { name: 'B楼 Elevator1', type: 'elevator', utilization: 20, trend: 3 },
-  { name: 'B楼 Elevator2', type: 'elevator', utilization: 20, trend: 3 },
-  { name: 'C楼 Elevator1', type: 'elevator', utilization: 30, trend: 3 },
-  { name: 'C楼 Elevator2', type: 'elevator', utilization: 30, trend: 3 },
+  { name: 'Building A Stair1', type: 'stair', utilization: 20, trend: 3 },
+  { name: 'Building A Stair2', type: 'stair', utilization: 20, trend: -2 },
+  { name: 'Building B Stair1', type: 'stair', utilization: 20, trend: 3 },
+  { name: 'Building B Stair2', type: 'stair', utilization: 20, trend: 3 },
+  { name: 'Building C Stair1', type: 'stair', utilization: 20, trend: 3 },
+  { name: 'Building C Stair2', type: 'stair', utilization: 20, trend: 3 },
+  { name: 'Building A Elevator1', type: 'elevator', utilization: 20, trend: 3 },
+  { name: 'Building A Elevator2', type: 'elevator', utilization: 50, trend: -2 },
+  { name: 'Building B Elevator1', type: 'elevator', utilization: 20, trend: 3 },
+  { name: 'Building B Elevator2', type: 'elevator', utilization: 20, trend: 3 },
+  { name: 'Building C Elevator1', type: 'elevator', utilization: 30, trend: 3 },
+  { name: 'Building C Elevator2', type: 'elevator', utilization: 30, trend: 3 },
 ]
 
-// 热点区域
+// Hotspots
 export const hotspots = [
-  { location: 'A楼3F-X药房', taskCount: 5 },
-  { location: 'B楼6F-Y病房', taskCount: 4 },
-  { location: 'C楼2F-急诊科', taskCount: 3 },
-  { location: 'A楼1F-检验科', taskCount: 3 },
+  { location: 'Building A 3F - X Pharmacy', taskCount: 5 },
+  { location: 'Building B 6F - Y Ward', taskCount: 4 },
+  { location: 'Building C 2F - Emergency', taskCount: 3 },
+  { location: 'Building A 1F - Laboratory', taskCount: 3 },
 ]
 
-// 冲突统计
+// Conflict statistics
 export const conflictStats = {
   efficiency: 98,
   trend: 2,
   total: 14,
   recentResolved: 3,
-  hotspot: 'B楼6F 电梯E1',
+  hotspot: 'Building B 6F Elevator E1',
 }
 
-// 院区列表
+// Campus list
 export const districts = [
-  { id: 'east', name: '东院区' },
-  { id: 'west', name: '西院区' },
-  { id: 'south', name: '南院区' },
+  { id: 'east', name: 'East Campus' },
+  { id: 'west', name: 'West Campus' },
+  { id: 'south', name: 'South Campus' },
 ]
 
-// 任务日志
+// Task logs
 export const taskLogs = [
-  { time: '14:30:15', type: 'create', taskId: 'T008', message: '创建紧急任务: 紧急送药' },
-  { time: '14:28:30', type: 'complete', taskId: 'TC062', message: '任务完成: 病历运送' },
-  { time: '14:27:45', type: 'start', taskId: 'T009', message: '任务开始执行: 输液配送' },
-  { time: '14:26:00', type: 'assign', taskId: 'T002', message: '任务分配给 R1: 检验样本' },
-  { time: '14:25:30', type: 'conflict', taskId: null, message: '检测到路径冲突: B楼6F 电梯E1' },
-  { time: '14:25:00', type: 'start', taskId: 'T001', message: '任务开始执行: ICU送药' },
-  { time: '14:24:00', type: 'complete', taskId: 'TC061', message: '任务完成: 急诊送药' },
-  { time: '14:22:00', type: 'start', taskId: 'T005', message: '任务开始执行: 病历文件' },
+  { time: '14:30:15', type: 'create', taskId: 'T008', message: 'Created urgent task: Urgent Medicine Delivery' },
+  { time: '14:28:30', type: 'complete', taskId: 'TC062', message: 'Task completed: Medical Record Delivery' },
+  { time: '14:27:45', type: 'start', taskId: 'T009', message: 'Task started: Infusion Delivery' },
+  { time: '14:26:00', type: 'assign', taskId: 'T002', message: 'Task assigned to R1: Lab Sample' },
+  { time: '14:25:30', type: 'conflict', taskId: null, message: 'Path conflict detected: Building B 6F Elevator E1' },
+  { time: '14:25:00', type: 'start', taskId: 'T001', message: 'Task started: ICU Medicine Delivery' },
+  { time: '14:24:00', type: 'complete', taskId: 'TC061', message: 'Task completed: Emergency Medicine Delivery' },
+  { time: '14:22:00', type: 'start', taskId: 'T005', message: 'Task started: Medical Records' },
 ]
 
-// 格式化时间
+// Format duration
 export function formatDuration(seconds) {
   if (!seconds) return '0s'
   const m = Math.floor(seconds / 60)
@@ -206,14 +206,14 @@ export function formatDuration(seconds) {
   return `${m}m${s > 0 ? s + 's' : ''}`
 }
 
-// 获取优先级文本
+// Get priority text
 export function getPriorityText(priority) {
-  const map = { urgent: '紧急', normal: '普通', low: '低优' }
+  const map = { urgent: 'Urgent', normal: 'Normal', low: 'Low' }
   return map[priority] || priority
 }
 
-// 获取状态文本
+// Get status text
 export function getStatusText(status) {
-  const map = { executing: '执行中', waiting: '等待中', completed: '已完成', idle: '空闲中', charging: '充电中' }
+  const map = { executing: 'Executing', waiting: 'Waiting', completed: 'Completed', idle: 'Idle', charging: 'Charging' }
   return map[status] || status
 }

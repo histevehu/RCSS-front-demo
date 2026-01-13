@@ -1,72 +1,72 @@
 <template>
   <div class="h-full flex flex-col bg-gray-900">
-    <!-- 3D 地图容器 -->
+    <!-- 3D map container -->
     <div class="flex-1 relative overflow-hidden">
       <div ref="containerRef" class="w-full h-full"></div>
       
-      <!-- 加载状态 -->
+      <!-- Loading state -->
       <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-gray-900/80">
         <div class="text-center text-white">
           <div class="loading-spinner mx-auto mb-3"></div>
-          <div>加载3D地图中...</div>
+          <div>Loading 3D map...</div>
         </div>
       </div>
       
-      <!-- 错误状态 -->
+      <!-- Error state -->
       <div v-if="error" class="absolute inset-0 flex items-center justify-center bg-gray-900/80">
         <div class="text-center text-red-400">
-          <div class="text-xl mb-2">加载失败</div>
+          <div class="text-xl mb-2">Load Failed</div>
           <div class="text-sm">{{ error }}</div>
         </div>
       </div>
       
-      <!-- 提示信息 -->
+      <!-- Hint -->
       <div v-if="!loading && !error" class="absolute top-4 left-4 bg-black/60 text-white px-3 py-2 rounded text-sm">
-        <div>点击左侧任务，高亮显示选中的任务路线</div>
-        <div class="text-xs text-gray-400 mt-1">鼠标左键旋转 | 右键平移 | 滚轮缩放</div>
+        <div>Click a task on the left to highlight its route</div>
+        <div class="text-xs text-gray-400 mt-1">Left mouse: rotate | Right mouse: pan | Scroll: zoom</div>
       </div>
       
-      <!-- 图例 -->
+      <!-- Legend -->
       <div class="absolute top-4 right-4 bg-black/60 text-white px-3 py-2 rounded text-sm space-y-1">
         <div class="flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-          <span>起点</span>
+          <span>Start</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-red-500"></span>
-          <span>终点</span>
+          <span>End</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-green-500"></span>
-          <span>中间点</span>
+          <span>Waypoint</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-purple-400"></span>
-          <span>跨图连接点</span>
+          <span>Cross-map connector</span>
         </div>
         <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-600">
           <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
-          <span>机器人</span>
+          <span>Robot</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="w-3 h-1 bg-orange-500 rounded"></span>
-          <span>任务路线</span>
+          <span>Task route</span>
         </div>
       </div>
     </div>
     
-    <!-- 控制选项 -->
+    <!-- Controls -->
     <div class="p-4 bg-gray-800 border-t border-gray-700">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-6 text-white text-sm">
-          <span>显示选项:</span>
+          <span>Display options:</span>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" v-model="showRobots" class="accent-blue-500">
-            <span>机器人</span>
+            <span>Robots</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" v-model="showRoute" class="accent-blue-500">
-            <span>路线</span>
+            <span>Route</span>
           </label>
         </div>
         <div class="flex items-center gap-3">
@@ -74,14 +74,14 @@
             @click="resetCamera"
             class="px-3 py-1 bg-gray-700 text-white text-sm rounded hover:bg-gray-600"
           >
-            重置视角
+            Reset View
           </button>
           <select 
             v-model="currentFloor"
             class="px-3 py-1 bg-gray-700 text-white text-sm rounded border-none"
           >
-            <option value="all">全部楼层</option>
-            <option v-for="floor in floors" :key="floor" :value="floor">{{ floor }}层</option>
+            <option value="all">All floors</option>
+            <option v-for="floor in floors" :key="floor" :value="floor">Floor {{ floor }}</option>
           </select>
         </div>
       </div>
@@ -129,7 +129,7 @@ onMounted(async () => {
     // 加载地图数据
     maps = await loadAllMaps('./maps')
     if (maps.length === 0) {
-      throw new Error('没有加载到任何地图数据')
+      throw new Error('No map data loaded')
     }
     
     // 计算楼层列表

@@ -2,7 +2,7 @@
   <div class="perf-content">
     <div class="perf-top">
       <div class="perf-card">
-        <div class="perf-label">冲突解决效率</div>
+        <div class="perf-label">Conflict resolution efficiency</div>
         <div class="perf-value">
           {{ conflictStats.efficiency }}%
           <span :class="conflictStats.trend >= 0 ? 'trend-up' : 'trend-down'">
@@ -12,17 +12,17 @@
       </div>
 
       <div class="perf-card">
-        <div class="perf-label">今日冲突</div>
+        <div class="perf-label">Today's conflicts</div>
         <div class="perf-value">{{ conflictStats.total }}</div>
-        <div class="perf-sub">近1小时解决 {{ conflictStats.recentResolved }}</div>
+        <div class="perf-sub">Resolved in last hour {{ conflictStats.recentResolved }}</div>
       </div>
     </div>
 
-    <div class="perf-title">垂直资源利用率</div>
+    <div class="perf-title">Vertical resource utilization</div>
 
     <div class="perf-grid">
       <div>
-        <div class="perf-subtitle">楼梯</div>
+        <div class="perf-subtitle">Stairs</div>
         <div class="bar-list">
           <div v-for="res in stairs" :key="res.name" class="bar-row">
             <span class="bar-name">{{ res.name }}</span>
@@ -32,7 +32,7 @@
         </div>
       </div>
       <div>
-        <div class="perf-subtitle">电梯</div>
+        <div class="perf-subtitle">Elevators</div>
         <div class="bar-list">
           <div v-for="res in elevators" :key="res.name" class="bar-row">
             <span class="bar-name">{{ res.name }}</span>
@@ -44,8 +44,8 @@
     </div>
 
     <div class="perf-footer">
-      <span>楼梯均值 <b>{{ avgStairUtilization }}%</b></span>
-      <span>电梯均值 <b>{{ avgElevatorUtilization }}%</b></span>
+      <span>Avg. stairs <b>{{ avgStairUtilization }}%</b></span>
+      <span>Avg. elevators <b>{{ avgElevatorUtilization }}%</b></span>
     </div>
   </div>
 </template>
@@ -127,7 +127,7 @@ const avgElevatorUtilization = computed(() => {
 
 .bar-list { display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
-.bar-name { width: 68px; color: rgba(255, 255, 255, 0.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-name { width: 110px; color: rgba(255, 255, 255, 0.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-track { flex: 1; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
 .bar-blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }

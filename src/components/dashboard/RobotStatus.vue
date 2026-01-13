@@ -17,10 +17,10 @@
       </div>
     </div>
 
-    <!-- 利用率 -->
+    <!-- Utilization -->
     <div class="utilization-section">
       <div class="utilization-header">
-        <span>利用率</span>
+        <span>Utilization</span>
         <span class="utilization-value">{{ robotStats.utilization }}%</span>
       </div>
       <div class="utilization-bar">
@@ -40,9 +40,9 @@ const robots = computed(() => store.robots)
 
 function statusText(status) {
   const map = {
-    executing: '执行中',
-    idle: '空闲',
-    charging: '充电'
+    executing: 'Executing',
+    idle: 'Idle',
+    charging: 'Charging'
   }
   return map[status] || status
 }

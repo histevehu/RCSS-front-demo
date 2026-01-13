@@ -4,29 +4,29 @@
     <div class="priority-bar" :class="priorityBarClass"></div>
 
     <div class="card-content">
-      <!-- 标题行 -->
+      <!-- Header -->
       <div class="card-header">
         <span class="priority-tag" :class="priorityTagClass">{{ priorityText }}</span>
         <span class="task-id">{{ task.id }}-{{ task.name }}</span>
       </div>
 
-      <!-- 详情 -->
+      <!-- Details -->
       <div class="card-details">
         <div class="detail-row">
-          <span class="detail-label">机器人:</span>
-          <span class="detail-value">{{ task.robotId || '待分配' }}</span>
+          <span class="detail-label">Robot:</span>
+          <span class="detail-value">{{ task.robotId || 'Unassigned' }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">状态:</span>
+          <span class="detail-label">Status:</span>
           <span class="detail-value">{{ statusText }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">用时:</span>
-          <span class="detail-value">{{ durationText }} / 预估{{ estimatedText }}</span>
+          <span class="detail-label">Duration:</span>
+          <span class="detail-value">{{ durationText }} / Est. {{ estimatedText }}</span>
         </div>
         <div class="detail-row route-row">
           <span class="route-icon">📍</span>
-          <span class="detail-label">路线:</span>
+          <span class="detail-label">Route:</span>
           <span class="detail-value route-value">{{ routeText }}</span>
         </div>
       </div>
@@ -64,7 +64,7 @@ const estimatedText = computed(() => formatDuration(props.task.estimatedTime))
 const routeText = computed(() => {
   if (props.task.routeNodes?.length > 0) return props.task.routeNodes.join('→')
   if (props.task.route?.length > 0) return props.task.route.join('→')
-  return '待计算'
+  return 'Pending'
 })
 </script>
 

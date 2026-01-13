@@ -1,14 +1,14 @@
 <template>
   <div class="gantt-container">
-    <!-- 时间轴头部 -->
+    <!-- Timeline header -->
     <div class="gantt-header">
-      <div class="gantt-task-col">任务</div>
+      <div class="gantt-task-col">Task</div>
       <div class="gantt-timeline">
         <div v-for="hour in hours" :key="hour" class="gantt-hour">{{ hour }}:00</div>
       </div>
     </div>
 
-    <!-- 任务行 -->
+    <!-- Task rows -->
     <div class="gantt-body">
       <div v-for="task in tasks" :key="task.id" class="gantt-row">
         <div class="gantt-task-col">
@@ -18,17 +18,17 @@
         <div class="gantt-timeline">
           <div v-for="hour in hours" :key="hour" class="gantt-cell"></div>
           <div class="gantt-bar" :class="getBarClass(task.status)" :style="getBarStyle(task)">
-            {{ task.robotId || '待分配' }}
+            {{ task.robotId || 'Unassigned' }}
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 图例 -->
+    <!-- Legend -->
     <div class="gantt-legend">
-      <div class="legend-item"><span class="legend-dot executing"></span>执行中</div>
-      <div class="legend-item"><span class="legend-dot waiting"></span>等待中</div>
-      <div class="legend-item"><span class="legend-dot completed"></span>已完成</div>
+      <div class="legend-item"><span class="legend-dot executing"></span>In Progress</div>
+      <div class="legend-item"><span class="legend-dot waiting"></span>Waiting</div>
+      <div class="legend-item"><span class="legend-dot completed"></span>Completed</div>
     </div>
   </div>
 </template>
