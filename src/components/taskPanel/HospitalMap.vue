@@ -249,12 +249,17 @@ function findWaypointForRobot(robot, index) {
 function buildTopoGraph() {
   const graph = new Map() // code -> { waypoint, neighbors: [code, ...], worldPos }
   const waypointByCode = new Map()
+
+  const addEdge = (from, to) => {
+    if (!graph.has(from) || !graph.has(to)) return
+    const fromNode = graph.get(from)
+    const toNode = graph.get(to)
+    if (!fromNode.neighbors.includes(to)) fromNode.neighbors.push(to)
+    if (!toNode.neighbors.includes(from)) toNode.neighbors.push(from)
+  }
   
-  // 第一步：收集所有非楼梯地图的waypoints并计算世界坐标
+  // 第一步：收集所有地图的waypoints并计算世界坐标（包含楼梯/跨图连接点）
   maps.forEach(map => {
-    // 排除楼梯地图
-    if (map.mapName.toLowerCase().includes('stair')) return
-    
     map.waypoints.forEach(wp => {
       const v = waypointToWorldVec(map, wp)
 
@@ -275,24 +280,33 @@ function buildTopoGraph() {
     })
   })
   
-  // 第二步：构建连接关系（只连接同图内的点）
+  // 第二步：同图内的 relatedPoints 连接
   maps.forEach(map => {
-    if (map.mapName.toLowerCase().includes('stair')) return
-    
     map.waypoints.forEach(wp => {
       const fullCode = `${map.mapName}:${wp.code}`
-      const node = graph.get(fullCode)
-      if (!node) return
-      
-      // 只连接同图内的relatedPoints
       if (wp.relatedPoints && wp.relatedPoints.length > 0) {
         wp.relatedPoints.forEach(relCode => {
           const neighborFullCode = `${map.mapName}:${relCode}`
-          if (graph.has(neighborFullCode)) {
-            node.neighbors.push(neighborFullCode)
-          }
+          addEdge(fullCode, neighborFullCode)
         })
       }
+    })
+  })
+
+  // 第三步：跨图连接（connect/linkedMapName）
+  maps.forEach(map => {
+    map.waypoints.forEach(wp => {
+      const fullCode = `${map.mapName}:${wp.code}`
+      const connections = wp.connections || (wp.linkedMapName ? [{
+        mapName: wp.linkedMapName,
+        waypointCode: wp.linkedWaypointCode,
+        reverse: wp.reverse || false
+      }] : [])
+
+      connections.forEach(conn => {
+        const targetCode = `${conn.mapName}:${conn.waypointCode}`
+        addEdge(fullCode, targetCode)
+      })
     })
   })
   

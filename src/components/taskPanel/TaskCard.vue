@@ -17,6 +17,10 @@
           <span class="detail-value">{{ task.robotId || 'Unassigned' }}</span>
         </div>
         <div class="detail-row">
+          <span class="detail-label">Type:</span>
+          <span class="detail-value">{{ taskTypeText }}</span>
+        </div>
+        <div class="detail-row">
           <span class="detail-label">Status:</span>
           <span class="detail-value">{{ statusText }}</span>
         </div>
@@ -61,6 +65,16 @@ const priorityText = computed(() => getPriorityText(props.task.priority))
 const statusText = computed(() => getStatusText(props.task.status))
 const durationText = computed(() => formatDuration(props.task.duration))
 const estimatedText = computed(() => formatDuration(props.task.estimatedTime))
+const taskTypeText = computed(() => {
+  const map = {
+    delivery: 'Delivery',
+    pickup: 'Pickup',
+    sample: 'Sample Transport',
+    document: 'Document Run',
+    other: 'Other'
+  }
+  return map[props.task.taskType] || props.task.taskType || 'N/A'
+})
 const routeText = computed(() => {
   if (props.task.routeNodes?.length > 0) return props.task.routeNodes.join('→')
   if (props.task.route?.length > 0) return props.task.route.join('→')

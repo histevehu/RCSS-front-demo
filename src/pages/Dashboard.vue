@@ -158,12 +158,28 @@ function handleCreateTask(task) {
   position: absolute;
   top: 72px;
   left: 20px;
+  bottom: 20px;
   width: 280px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: calc(100vh - 92px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.dashboard-left::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dashboard-left::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-left::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
 }
 
 /* 右侧面板组 */
@@ -171,12 +187,28 @@ function handleCreateTask(task) {
   position: absolute;
   top: 72px;
   right: 20px;
+  bottom: 80px;
   width: 300px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.dashboard-right::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dashboard-right::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-right::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
 }
 
 /* 底部性能条 */

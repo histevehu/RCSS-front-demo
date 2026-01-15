@@ -56,9 +56,11 @@ onMounted(async () => {
     renderer.init()
     renderer.setData(allMaps)
 
-    // 再次延迟触发 resize 确保尺寸正确
+    // 再次延迟触发 resize 确保尺寸正确，并重新 fit 一次相机（避免首次包围盒/比例未稳定导致初始视角偏差）
     setTimeout(() => {
-      if (renderer) renderer.onResize()
+      if (!renderer) return
+      renderer.onResize()
+      renderer.fitCamera()
     }, 100)
 
     loading.value = false

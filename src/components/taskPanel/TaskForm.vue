@@ -19,7 +19,9 @@
       <label class="form-label">Start</label>
       <select v-model="form.startLocation" required class="form-select">
         <option value="">Select start location</option>
-        <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
+        <option v-for="loc in locationOptions" :key="loc.value" :value="loc.value">
+          {{ loc.label }}
+        </option>
       </select>
     </div>
 
@@ -27,13 +29,20 @@
       <label class="form-label">End</label>
       <select v-model="form.endLocation" required class="form-select">
         <option value="">Select end location</option>
-        <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
+        <option v-for="loc in locationOptions" :key="loc.value" :value="loc.value">
+          {{ loc.label }}
+        </option>
       </select>
     </div>
 
     <div class="form-group">
-      <label class="form-label">Estimated time (minutes)</label>
-      <input v-model.number="form.estimatedMinutes" type="number" min="1" max="60" placeholder="5" class="form-input">
+      <label class="form-label">Task Type</label>
+      <select v-model="form.taskType" required class="form-select">
+        <option value="">Select task type</option>
+        <option v-for="type in taskTypes" :key="type.value" :value="type.value">
+          {{ type.label }}
+        </option>
+      </select>
     </div>
 
     <div class="form-group">
@@ -49,16 +58,18 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, computed } from 'vue'
+import { useAppStore } from '../../stores/appStore'
 
 const emit = defineEmits(['submit', 'cancel'])
+const store = useAppStore()
 
 const form = reactive({
   name: '',
   priority: 'normal',
   startLocation: '',
   endLocation: '',
-  estimatedMinutes: 5,
+  taskType: 'delivery',
   notes: '',
 })
 
@@ -68,7 +79,15 @@ const priorities = [
   { value: 'low', label: 'Low', class: 'tag-low' },
 ]
 
-const locations = [
+const taskTypes = [
+  { value: 'delivery', label: 'Delivery' },
+  { value: 'pickup', label: 'Pickup' },
+  { value: 'sample', label: 'Sample Transport' },
+  { value: 'document', label: 'Document Run' },
+  { value: 'other', label: 'Other' },
+]
+
+const fallbackLocations = [
   'Building A 1F Pharmacy',
   'Building A 2F Emergency',
   'Building A 3F Ward',
@@ -83,14 +102,55 @@ const locations = [
   'Building C 4F Rehabilitation',
 ]
 
+const locationOptions = computed(() => {
+  if (!store.maps || store.maps.length === 0) {
+    return fallbackLocations.map(loc => ({
+      value: loc,
+      label: loc,
+      plain: loc,
+    }))
+  }
+
+  const options = []
+  store.maps.forEach(map => {
+    const isStair = map.mapType === 'stair' || String(map.mapName).toLowerCase().includes('stair')
+    if (isStair) return
+    map.waypoints?.forEach(wp => {
+      const baseName = wp.name || wp.code
+      const mapLabel = map.displayName || map.mapName
+      options.push({
+        value: `${map.mapName}:${wp.code}`,
+        label: `${baseName} (${mapLabel})`,
+        plain: baseName,
+      })
+    })
+  })
+
+  return options
+})
+
+const plainLocationByValue = computed(() => {
+  const map = new Map()
+  locationOptions.value.forEach(opt => map.set(opt.value, opt.plain))
+  return map
+})
+
+function getPlainLocation(value) {
+  return plainLocationByValue.value.get(value) || value
+}
+
 function handleSubmit() {
-  if (!form.name || !form.startLocation || !form.endLocation) return
+  if (!form.name || !form.startLocation || !form.endLocation || !form.taskType) return
   
+  const startDisplay = getPlainLocation(form.startLocation)
+  const endDisplay = getPlainLocation(form.endLocation)
+
   emit('submit', {
     name: form.name,
     priority: form.priority,
-    route: [form.startLocation, form.endLocation],
-    estimatedTime: form.estimatedMinutes * 60,
+    taskType: form.taskType,
+    route: [startDisplay, endDisplay],
+    routeNodes: [form.startLocation, form.endLocation],
     notes: form.notes,
   })
   
@@ -99,7 +159,7 @@ function handleSubmit() {
   form.priority = 'normal'
   form.startLocation = ''
   form.endLocation = ''
-  form.estimatedMinutes = 5
+  form.taskType = 'delivery'
   form.notes = ''
 }
 </script>

@@ -103,23 +103,63 @@ export const useAppStore = defineStore('app', () => {
   
   // Add new task
   function addTask(task) {
+    const taskType = task.taskType || 'other'
+    const routeNodes = Array.isArray(task.routeNodes) ? task.routeNodes : []
+    // 随机分配一个机器人（优先空闲，其次任意机器人）
+    let assignedRobot = null
+    if (robots.value.length > 0) {
+      const idleRobots = robots.value.filter(r => r.status === 'idle')
+      const candidates = idleRobots.length > 0 ? idleRobots : robots.value
+      const index = Math.floor(Math.random() * candidates.length)
+      assignedRobot = candidates[index]
+    }
+
+    // 随机生成一个预计耗时（秒），例如 2-10 分钟
+    const estimatedTime = (() => {
+      if (typeof task.estimatedTime === 'number' && task.estimatedTime > 0) {
+        return task.estimatedTime
+      }
+      const minMinutes = 2
+      const maxMinutes = 10
+      const minutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes
+      return minutes * 60
+    })()
+
     const newTask = {
       id: `T${String(tasks.value.length + completedTasks.length + 1).padStart(3, '0')}`,
       ...task,
+      taskType,
+      routeNodes,
+      estimatedTime,
+      // 为新任务绑定机器人，但仍保持 waiting 状态，表示已指派待执行
+      robotId: assignedRobot ? assignedRobot.id : null,
       status: 'waiting',
       duration: 0,
       createdAt: new Date(),
     }
+
     tasks.value.unshift(newTask)
-    
-    // Add log
+
+    const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+    // 记录创建日志
     taskLogs.value.unshift({
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      time: timeStr,
       type: 'create',
       taskId: newTask.id,
       message: `Created ${task.priority === 'urgent' ? 'urgent ' : ''}task: ${task.name}`,
     })
-    
+
+    // 如果成功分配了机器人，再记录一次指派日志，方便后续扩展
+    if (assignedRobot) {
+      taskLogs.value.unshift({
+        time: timeStr,
+        type: 'assign',
+        taskId: newTask.id,
+        message: `Task assigned to ${assignedRobot.id}: ${newTask.name}`,
+      })
+    }
+
     return newTask
   }
   

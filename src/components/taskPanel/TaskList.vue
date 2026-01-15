@@ -75,14 +75,19 @@ function handleSelect(taskId) {
 .task-list {
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 
 .filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   gap: 6px;
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .filter-btn {
@@ -108,8 +113,6 @@ function handleSelect(taskId) {
 }
 
 .task-scroll {
-  flex: 1;
-  overflow-y: auto;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -139,9 +142,15 @@ function handleSelect(taskId) {
 }
 
 .task-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   padding: 10px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 </style>

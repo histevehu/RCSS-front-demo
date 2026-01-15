@@ -744,26 +744,81 @@ export class Map3DRenderer {
 
   /**
    * 自动调整相机以包含所有内容
+   * 说明：不要依赖 three.js 的 expandByObject 来算 instanced mesh 的包围盒（会偏小），
+   * 我们用地图的 PGM 尺寸/分辨率/原点来估算每张地图的边界，再统一 fit。
    */
   fitCamera() {
     if (this.allMaps.length === 0) return
 
     const box = new THREE.Box3()
-    this.mapGroups.forEach(group => {
-      box.expandByObject(group)
-    })
+    box.makeEmpty()
+
+    const p = new THREE.Vector3()
+    let hasPoint = false
+
+    // 1) 用地图元数据计算整体包围盒（更稳定）
+    for (const map of this.allMaps) {
+      if (!map?.visible) continue
+      if (!map?.mapConfig || !map?.pgmWidth || !map?.pgmHeight) continue
+
+      const resolution = map.mapConfig.resolution || 0.05
+      const origin = map.mapConfig.origin || [0, 0, 0]
+      const width = map.pgmWidth * resolution
+      const height = map.pgmHeight * resolution
+
+      const corners = [
+        { x: origin[0], y: origin[1] },
+        { x: origin[0] + width, y: origin[1] },
+        { x: origin[0], y: origin[1] + height },
+        { x: origin[0] + width, y: origin[1] + height },
+      ]
+
+      for (const c of corners) {
+        const w = this.waypointToWorld({ x: c.x, y: c.y, z: 0 }, map)
+
+        // 地面点
+        p.set(w.x, w.y, w.z)
+        box.expandByPoint(p)
+        hasPoint = true
+
+        // 给一点高度，确保相机视角不会太贴地
+        p.set(w.x, w.y + WALL_HEIGHT + 0.8, w.z)
+        box.expandByPoint(p)
+      }
+    }
+
+    // 兜底：如果没有算出任何点，退回旧逻辑
+    if (!hasPoint) {
+      this.mapGroups.forEach(group => {
+        box.expandByObject(group)
+      })
+    }
 
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
     const maxDim = Math.max(size.x, size.y, size.z)
-    const distance = maxDim * 1.5
 
+    // 2) 默认稍微拉远一点（更接近你想要的“第二张图”效果）
+    const distance = maxDim * 2.0
+
+    // 放宽 OrbitControls 的 maxDistance，避免大场景被 clamp 导致视角不生效
+    if (this.controls) {
+      this.controls.maxDistance = Math.max(this.controls.maxDistance || 0, distance * 2)
+    }
+
+    // 相机位置
     this.camera.position.set(
       center.x + distance * 0.5,
       center.y + distance * 0.6,
       center.z + distance * 0.5
     )
-    this.controls.target.copy(center)
+
+    // 3) 让视线“看向中心点的下方”，让建筑在屏幕里整体上移（避开底部 UI）
+    const adjustedCenter = center.clone()
+    const uiOffsetY = Math.min(distance * 0.18, 20) // 更强的下移量，让建筑在屏幕中更靠上（避开底部 UI）
+    adjustedCenter.y -= uiOffsetY
+
+    this.controls.target.copy(adjustedCenter)
     this.controls.update()
   }
 

@@ -21,7 +21,14 @@
     </Header>
 
     <!-- Left task list panel -->
-    <aside class="task-sidebar">
+    <button
+      class="sidebar-toggle"
+      :class="{ 'sidebar-toggle--collapsed': sidebarCollapsed }"
+      @click="sidebarCollapsed = !sidebarCollapsed"
+    >
+      {{ sidebarCollapsed ? '»' : '«' }}
+    </button>
+    <aside v-if="!sidebarCollapsed" class="task-sidebar" @wheel.capture.stop>
       <TaskList :initial-filter="initialFilter" />
     </aside>
 
@@ -64,6 +71,7 @@ const store = useAppStore()
 const showGantt = ref(false)
 const showLogs = ref(false)
 const showTaskForm = ref(false)
+const sidebarCollapsed = ref(false)
 
 const initialFilter = computed(() => route.query.filter || 'all')
 
@@ -99,7 +107,47 @@ function handleCreateTask(task) {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  overflow: hidden;
+  /* 关键：让整个侧栏成为滚动容器（不依赖内部 flex 计算） */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 60px;
+  left: 320px;
+  z-index: 20;
+  width: 24px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 999px 999px 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: none;
+  background: rgba(15, 23, 42, 0.8);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+@media (max-width: 1280px) {
+  .sidebar-toggle { left: 300px; }
+  .task-sidebar { width: 300px; }
+}
+@media (max-width: 1120px) {
+  .sidebar-toggle { left: 280px; }
+  .task-sidebar { width: 280px; }
+}
+
+.sidebar-toggle--collapsed {
+  left: 12px;
+  border-radius: 999px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .header-btn {
