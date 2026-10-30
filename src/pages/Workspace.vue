@@ -2,7 +2,11 @@
   <main class="workspace" :class="{'left-hidden':!leftVisible,'right-hidden':!rightVisible}">
     <ConferenceMap />
     <Header :focus="focus" @focus="toggleFocus" />
-    <button class="rail-toggle left-toggle" :aria-label="ui.t(leftVisible ? 'hideLeft':'showLeft')" :aria-expanded="leftVisible" @click="toggleRail('left')">{{ leftVisible ? '‹':'›' }}</button>
+    <button v-if="leftVisible" class="rail-toggle left-toggle" :aria-label="ui.t('hideLeft')" :aria-expanded="true" @click="toggleRail('left')"><span>{{ ui.t('taskArea') }}</span> ‹</button>
+    <nav v-else class="collapsed-rail collapsed-left" :aria-label="ui.t('taskArea')">
+      <strong>{{ ui.t('taskArea') }}</strong>
+      <button v-for="panel in leftPanels" :key="panel.id" :aria-expanded="false" @click="openPanel('left',panel.id)"><span>{{ ui.t(panel.title) }}</span><span class="badge">{{ panel.badge }}</span><span aria-hidden="true">›</span></button>
+    </nav>
     <aside v-show="leftVisible" class="workspace-rail left-rail" :aria-label="ui.t('taskArea')" @wheel.stop>
       <CollapsiblePanel panel-id="summary" :title="ui.t('tasks')" :badge="store.stats.total">
         <div class="task-counts"><button v-for="status in ['executing','waiting','completed']" :key="status" :class="`status-${status}`" @click="filterTasks(status)"><strong>{{ store.stats[status] }}</strong><span>{{ ui.t(status) }}</span></button></div>
@@ -17,7 +21,11 @@
         <TaskList :initial-filter="filter" @select-task="openDetails" />
       </CollapsiblePanel>
     </aside>
-    <button class="rail-toggle right-toggle" :aria-label="ui.t(rightVisible ? 'hideRight':'showRight')" :aria-expanded="rightVisible" @click="toggleRail('right')">{{ rightVisible ? '›':'‹' }}</button>
+    <button v-if="rightVisible" class="rail-toggle right-toggle" :aria-label="ui.t('hideRight')" :aria-expanded="true" @click="toggleRail('right')"><span>{{ ui.t('robotArea') }}</span> ›</button>
+    <nav v-else class="collapsed-rail collapsed-right" :aria-label="ui.t('robotArea')">
+      <strong>{{ ui.t('robotArea') }}</strong>
+      <button :aria-expanded="false" @click="openPanel('right','robots')"><span aria-hidden="true">‹</span><span>{{ ui.t('robots') }}</span><span class="badge">{{ store.robotStats.total }} {{ ui.t('online') }}</span></button>
+    </nav>
     <aside v-show="rightVisible" class="workspace-rail right-rail" :aria-label="ui.t('robotArea')" @wheel.stop><CollapsiblePanel panel-id="robots" :title="ui.t('robots')" :badge="`${store.robotStats.total} ${ui.t('online')}`"><RobotStatus /></CollapsiblePanel></aside>
     <div class="left-dock"><button class="primary new-task-button" @click="showForm=true">＋ {{ ui.t('newTask') }}</button></div>
     <div class="mobile-drawers"><button :aria-expanded="mobilePanel==='left'" @click="mobilePanel=mobilePanel==='left' ? null:'left'">{{ ui.t('tasks') }} · {{ store.stats.total }}</button><button :aria-expanded="mobilePanel==='right'" @click="mobilePanel=mobilePanel==='right' ? null:'right'">{{ ui.t('robots') }} · {{ store.robotStats.total }}</button></div>
@@ -48,6 +56,16 @@ const showForm=ref(false),showGantt=ref(false),showLogs=ref(false),focus=ref(fal
 const mobile=ref(window.matchMedia('(max-width:800px)').matches)
 const leftVisible=computed(()=>mobile.value ? mobilePanel.value==='left' : !focus.value && !ui.preferences.leftHidden)
 const rightVisible=computed(()=>mobile.value ? mobilePanel.value==='right' : !focus.value && !ui.preferences.rightHidden)
+const leftPanels=computed(()=>[
+  {id:'summary',title:'tasks',badge:store.stats.total},
+  ...(store.selectedTask ? [{id:'details',title:'taskDetails',badge:store.selectedTask.id}]:[]),
+  taskView.value ? {id:'list',title:'taskList',badge:store.stats.total} : {id:'queue',title:'waitingQueue',badge:store.waitingQueue.length},
+])
+function openPanel(side,id) {
+  focus.value=false
+  ui.preferences[`${side}Hidden`]=false
+  ui.preferences.folds[id]=false
+}
 function toggleRail(side) {
   if(mobile.value) mobilePanel.value=mobilePanel.value===side ? null:side
   else {
@@ -68,16 +86,22 @@ onUnmounted(()=>media.removeEventListener('change',resized))
 </script>
 <style scoped>
 .workspace { --rail-width:280px; --left-space:calc(var(--rail-width) + 36px); --right-space:calc(var(--rail-width) + 36px); position:relative; width:100%; height:100%; }
-.workspace.left-hidden { --left-space:42px; }.workspace.right-hidden { --right-space:42px; }
+.workspace.left-hidden { --left-space:184px; }.workspace.right-hidden { --right-space:184px; }
 .workspace-rail { position:absolute; z-index:10; top:calc(var(--header-height) + 12px); bottom:64px; width:var(--rail-width); display:flex; flex-direction:column; gap:12px; overflow-y:auto; overscroll-behavior:contain; }
 .left-rail { left:12px; }.right-rail { right:12px; }
-.rail-toggle { position:absolute; top:calc(var(--header-height) + 18px); z-index:12; width:22px; height:30px; padding:0; font-size:20px; background:var(--surface); }
-.left-toggle { left:calc(var(--rail-width) + 16px); }.left-hidden .left-toggle { left:12px; }.right-toggle { right:calc(var(--rail-width) + 16px); }.right-hidden .right-toggle { right:12px; }
+.rail-toggle { position:absolute; top:calc(var(--header-height) + 18px); z-index:12; height:30px; padding:4px 7px; font-size:11px; white-space:nowrap; background:var(--surface); }
+.collapsed-rail { position:absolute; z-index:12; top:calc(var(--header-height) + 12px); width:160px; display:flex; flex-direction:column; gap:6px; padding:9px; border:1px solid var(--border); border-radius:9px; background:var(--surface); box-shadow:var(--shadow); }
+.collapsed-left { left:12px; }.collapsed-right { right:12px; }
+.collapsed-rail>strong { color:var(--muted); font-size:10px; font-weight:500; margin-bottom:2px; }
+.collapsed-rail>button { display:flex; align-items:center; gap:6px; padding:7px 6px; text-align:left; min-height:34px; font-size:11px; }
+.collapsed-rail>button>span:first-child:not([aria-hidden]) { flex:1; }
+.collapsed-right>button>span:nth-child(2) { flex:1; }
+.left-toggle { left:calc(var(--rail-width) + 16px); }.right-toggle { right:calc(var(--rail-width) + 16px); }
 .task-counts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-bottom:8px; }.task-counts button { border:0; background:var(--subtle); padding:8px 3px; display:flex; flex-direction:column; gap:4px; align-items:center; }.task-counts strong { font-size:23px; font-weight:650; line-height:1; }.task-counts span { font-size:10px; color:var(--muted); }
 .session-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; border-top:1px solid var(--border); padding-top:9px; margin-top:8px; }.session-metrics>div,.session-metrics>button { display:flex; flex-direction:column; align-items:center; text-align:center; gap:4px; padding:0 2px; background:transparent; border:0; }.session-metrics strong { font-size:15px; font-weight:600; }.session-metrics span { font-size:9px; color:var(--muted); }.session-metrics button strong { color:var(--danger); }
-.left-dock { position:absolute; z-index:12; left:12px; bottom:12px; width:var(--rail-width); }.new-task-button { width:100%; height:38px; }.left-hidden .left-dock { width:136px; }
+.left-dock { position:absolute; z-index:12; left:12px; bottom:12px; width:var(--rail-width); }.new-task-button { width:100%; height:38px; }.left-hidden .left-dock { width:160px; }
 .task-actions { display:flex; gap:6px; margin-bottom:8px; }.task-actions button { flex:1; font-size:10px; }
 .mobile-drawers { display:none; }
 @media(min-width:801px) and (max-width:1199px) { .workspace { --rail-width:240px; } }
-@media(max-width:800px) { .workspace { --left-space:8px; --right-space:8px; }.workspace-rail { inset:auto 8px 106px; width:auto; max-height:calc(100% - var(--header-height) - 120px); border-radius:10px; padding:0; gap:8px; }.rail-toggle { display:none; }.workspace-rail :deep(.panel-body) { max-height:36vh; }.left-dock,.left-hidden .left-dock { left:8px; bottom:8px; width:128px; }.new-task-button { height:44px; }.mobile-drawers { position:absolute; bottom:8px; right:8px; display:flex; gap:6px; z-index:12; }.mobile-drawers button { height:44px; background:var(--surface); padding:5px 10px; } }
+@media(max-width:800px) { .workspace,.workspace.left-hidden,.workspace.right-hidden { --left-space:8px; --right-space:8px; }.workspace-rail { inset:auto 8px 106px; width:auto; max-height:calc(100% - var(--header-height) - 120px); border-radius:10px; padding:0; gap:8px; }.rail-toggle,.collapsed-rail { display:none; }.workspace-rail :deep(.panel-body) { max-height:36vh; }.left-dock,.left-hidden .left-dock { left:8px; bottom:8px; width:128px; }.new-task-button { height:44px; }.mobile-drawers { position:absolute; bottom:8px; right:8px; display:flex; gap:6px; z-index:12; }.mobile-drawers button { height:44px; background:var(--surface); padding:5px 10px; } }
 </style>
