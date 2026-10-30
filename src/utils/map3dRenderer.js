@@ -5,6 +5,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { mapThemes } from './mapTheme.js'
+import { configureMapControls, discardControlMomentum } from './mapCamera.js'
 
 // 常量配置
 const Z_SCALE = 3 // 楼层高度缩放
@@ -62,6 +63,9 @@ export class Map3DRenderer {
     this.controls.dampingFactor = 0.05
     this.controls.minDistance = 5
     this.controls.maxDistance = 200
+    this.controls.minPolarAngle = THREE.MathUtils.degToRad(15)
+    this.controls.maxPolarAngle = THREE.MathUtils.degToRad(65)
+    this.controls.screenSpacePanning = false
 
     // 灯光
     this.setupLights()
@@ -790,9 +794,7 @@ export class Map3DRenderer {
    * 说明：不要依赖 three.js 的 expandByObject 来算 instanced mesh 的包围盒（会偏小），
    * 我们用地图的 PGM 尺寸/分辨率/原点来估算每张地图的边界，再统一 fit。
    */
-  fitCamera() {
-    if (this.allMaps.length === 0) return
-
+  getVisibleBounds() {
     const box = new THREE.Box3()
     box.makeEmpty()
 
@@ -833,9 +835,22 @@ export class Map3DRenderer {
     // 兜底：如果没有算出任何点，退回旧逻辑
     if (!hasPoint) {
       this.mapGroups.forEach(group => {
-        box.expandByObject(group)
+        if (group.visible) box.expandByObject(group)
       })
     }
+
+    return box.isEmpty() ? null : box
+  }
+
+  updateViewLimits() {
+    configureMapControls(this.controls, this.getVisibleBounds())
+  }
+
+  fitCamera() {
+    const box = this.getVisibleBounds()
+    if (!box) return
+    discardControlMomentum(this.controls)
+    configureMapControls(this.controls, box)
 
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
@@ -844,11 +859,6 @@ export class Map3DRenderer {
     // 2) 默认稍微拉远一点（更接近你想要的“第二张图”效果）
     const distance = maxDim * 2.0
 
-    // 放宽 OrbitControls 的 maxDistance，避免大场景被 clamp 导致视角不生效
-    if (this.controls) {
-      this.controls.maxDistance = Math.max(this.controls.maxDistance || 0, distance * 2)
-    }
-
     // 相机位置
     this.camera.position.set(
       center.x + distance * 0.5,
@@ -856,13 +866,9 @@ export class Map3DRenderer {
       center.z + distance * 0.5
     )
 
-    // 3) 让视线“看向中心点的下方”，让建筑在屏幕里整体上移（避开底部 UI）
-    const adjustedCenter = center.clone()
-    const uiOffsetY = Math.min(distance * 0.18, 20) // 更强的下移量，让建筑在屏幕中更靠上（避开底部 UI）
-    adjustedCenter.y -= uiOffsetY
-
-    this.controls.target.copy(adjustedCenter)
+    this.controls.target.copy(center)
     this.controls.update()
+    this.controls.saveState()
   }
 
   /**

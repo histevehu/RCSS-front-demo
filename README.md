@@ -72,3 +72,7 @@ Language, theme, card folds and desktop rail visibility are remembered locally i
 ### UI verification
 
 `npm test` additionally checks preference recovery, translation coverage, safe location/error display, English-only log rendering and in-place 3D theme changes. Browser validation covers the same-floor and cross-floor order loop from both views, queued tasks, clock freeze/reconnect, preserved map/camera across view switches, four language/theme combinations, card/rail folding, and desktop/mobile layouts.
+
+### Map camera controls
+
+Drag to orbit, right-drag to pan, and scroll/pinch to zoom. Orbit elevation stays between 25° and 75° above the map; panning follows a horizontal plane instead of moving the focus vertically. Zoom and pan limits scale with the visible map bounds, and the nearest camera position stays above the highest visible floor. Switching floors updates these limits without resetting the viewing direction. Reset View restores the overview and clears remaining drag inertia so the camera stops drifting.

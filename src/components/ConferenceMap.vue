@@ -206,6 +206,7 @@ watch(floor, value => {
     const group=renderer?.mapGroups.get(m.mapName)
     if(group) group.visible=m.visible
   }
+  renderer?.updateViewLimits()
 })
 watch(showRobots, clearHover)
 watch(()=>ui.preferences.theme,theme=>{
