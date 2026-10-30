@@ -4,6 +4,7 @@
 
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { mapThemes } from './mapTheme.js'
 
 // 常量配置
 const Z_SCALE = 3 // 楼层高度缩放
@@ -70,8 +71,8 @@ export class Map3DRenderer {
     this.scene.add(axesHelper)
 
     // 网格
-    const gridHelper = new THREE.GridHelper(100, 100, 0x444444, 0x222222)
-    this.scene.add(gridHelper)
+    this.grid = new THREE.GridHelper(100, 100, 0x444444, 0x222222)
+    this.scene.add(this.grid)
 
     // 开始动画循环
     this.animate()
@@ -79,6 +80,39 @@ export class Map3DRenderer {
     // 窗口大小变化处理
     this.resizeHandler = () => this.onResize()
     window.addEventListener('resize', this.resizeHandler)
+  }
+
+  // Update materials in place: theme changes preserve geometry, animation and camera.
+  setTheme(theme) {
+    this.theme = theme
+    const light=theme === 'light'
+    const background=light ? 0xe8eff5 : 0x0c1420
+    this.scene.background.set(background)
+    this.scene.fog.color.set(background)
+    const colors=this.grid.geometry.attributes.color, positions=this.grid.geometry.attributes.position
+    const major=new THREE.Color(light ? 0xa8bbcc : 0x40516a), minor=new THREE.Color(light ? 0xcddbe6 : 0x26364b)
+    for(let i=0; i<colors.count; i+=2) {
+      const isAxis=(positions.getX(i)===0 && positions.getX(i+1)===0) || (positions.getZ(i)===0 && positions.getZ(i+1)===0)
+      const color=isAxis ? major:minor
+      colors.setXYZ(i,color.r,color.g,color.b); colors.setXYZ(i+1,color.r,color.g,color.b)
+    }
+    colors.needsUpdate=true
+    this.scene.traverse(object=>{
+      const color=mapThemes[theme][object.userData.themeRole]
+      if(color !== undefined && object.material?.color) {
+        object.material.color.set(color)
+        object.material.emissive?.set(color)
+      }
+      if(object.userData.themeRole === 'wall') {
+        object.material.color.set(light ? 0x8199ad : 0xb0c4de)
+        object.material.emissive.set(light ? 0xa8bbcc : 0x87ceeb)
+        object.material.opacity=light ? .5:.35
+      }
+      if(object.userData.themeRole === 'floor') {
+        object.material.color.set(light ? 0xe0e8ee : 0x596b7e)
+        object.material.emissive.set(light ? 0xe8eef3 : 0x46576a)
+      }
+    })
   }
 
   /**
@@ -421,6 +455,7 @@ export class Map3DRenderer {
     })
 
     const mesh = new THREE.InstancedMesh(geometry, material, obstacles.length)
+    mesh.userData.themeRole = 'wall'
     mesh.castShadow = true
     mesh.receiveShadow = true
 
@@ -521,6 +556,7 @@ export class Map3DRenderer {
     })
 
     mesh.instanceMatrix.needsUpdate = true
+    mesh.userData.themeRole = 'floor'
     mesh.receiveShadow = true
     group.add(mesh)
   }
@@ -583,6 +619,7 @@ export class Map3DRenderer {
       roughness: 0.3
     })
     const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial)
+    if(wp.markerColor !== undefined) cylinder.userData.themeRole=wp.displayKind === 'stairs' ? 'stair':'node'
     cylinder.position.y = 0.3
     cylinder.castShadow = true
     markerGroup.add(cylinder)
@@ -597,6 +634,7 @@ export class Map3DRenderer {
       roughness: 0.1
     })
     const ring = new THREE.Mesh(ringGeometry, ringMaterial)
+    if(wp.markerColor !== undefined) ring.userData.themeRole=wp.displayKind === 'stairs' ? 'stair':'node'
     ring.position.y = 0.55
     ring.rotation.x = Math.PI / 2
     markerGroup.add(ring)

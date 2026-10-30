@@ -2,9 +2,9 @@
   <div class="gantt-container">
     <!-- Timeline header -->
     <div class="gantt-header">
-      <div class="gantt-task-col">Task</div>
+      <div class="gantt-task-col">{{ ui.t('task') }}</div>
       <div class="gantt-timeline">
-        <div v-for="hour in hours" :key="hour" class="gantt-hour">+{{ Math.round(hour) }}s</div>
+        <div v-for="hour in hours" :key="hour" class="gantt-hour">+{{ ui.duration(hour) }}</div>
       </div>
     </div>
 
@@ -17,8 +17,8 @@
         </div>
         <div class="gantt-timeline">
           <div v-for="hour in hours" :key="hour" class="gantt-cell"></div>
-          <div v-if="task.startTime != null" class="gantt-bar" :title="`${task.id}: +${task.startTime.toFixed(1)}s → +${task.finishTime.toFixed(1)}s`" :class="getBarClass(task.status)" :style="getBarStyle(task)">
-            {{ task.robotId || 'Unassigned' }}
+          <div v-if="task.startTime != null" class="gantt-bar" :title="`${task.id}: +${ui.duration(task.startTime)} → +${ui.duration(task.finishTime)}`" :class="getBarClass(task.status)" :style="getBarStyle(task)">
+            {{ task.robotId || ui.t('unassigned') }}
           </div>
         </div>
       </div>
@@ -26,9 +26,9 @@
 
     <!-- Legend -->
     <div class="gantt-legend">
-      <div class="legend-item"><span class="legend-dot executing"></span>In Progress</div>
-      <div class="legend-item"><span class="legend-dot waiting"></span>Waiting</div>
-      <div class="legend-item"><span class="legend-dot completed"></span>Completed</div>
+      <div class="legend-item"><span class="legend-dot executing"></span>{{ ui.t('executing') }}</div>
+      <div class="legend-item"><span class="legend-dot waiting"></span>{{ ui.t('waiting') }}</div>
+      <div class="legend-item"><span class="legend-dot completed"></span>{{ ui.t('completed') }}</div>
     </div>
   </div>
 </template>
@@ -36,8 +36,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useAppStore } from '../../stores/appStore'
+import { useUiStore } from '../../stores/uiStore'
 
-const store = useAppStore()
+const store = useAppStore(), ui=useUiStore()
 const tasks = computed(() => store.tasks)
 
 const end = computed(() => Math.max(60, Math.ceil(Math.max(store.uiNow, ...tasks.value.map(t => t.finishTime || 0)) / 60) * 60))
@@ -67,129 +68,5 @@ function getBarStyle(task) {
 </script>
 
 <style scoped>
-.gantt-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: #1e293b;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.gantt-header {
-  display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.gantt-task-col {
-  width: 180px;
-  flex-shrink: 0;
-  padding: 10px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.gantt-timeline {
-  flex: 1;
-  display: flex;
-  position: relative;
-}
-
-.gantt-hour {
-  flex: 1;
-  padding: 10px 4px;
-  font-size: 11px;
-  text-align: left;
-  color: rgba(255, 255, 255, 0.5);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.gantt-body {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.gantt-row {
-  display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  transition: background 0.15s ease;
-}
-
-.gantt-row:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.gantt-cell {
-  flex: 1;
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.priority-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dot-urgent { background: #ef4444; }
-.dot-normal { background: #f59e0b; }
-.dot-low { background: #10b981; }
-
-.task-name {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.gantt-bar {
-  position: absolute;
-  top: 8px;
-  height: 24px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-  white-space: nowrap;
-}
-
-.bar-executing { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.bar-waiting { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.bar-completed { background: linear-gradient(135deg, #10b981, #059669); }
-
-.gantt-legend {
-  display: flex;
-  gap: 16px;
-  padding: 12px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-
-.legend-dot.executing { background: #3b82f6; }
-.legend-dot.waiting { background: #f59e0b; }
-.legend-dot.completed { background: #10b981; }
+.gantt-container { min-width:600px; min-height:240px; max-height:60vh; display:flex; flex-direction:column; background:var(--surface-solid); }.gantt-header,.gantt-row { display:flex; border-bottom:1px solid var(--border); }.gantt-header { background:var(--subtle); }.gantt-task-col { width:180px; flex:none; padding:10px; color:var(--text); font-size:11px; display:flex; align-items:center; gap:6px; border-right:1px solid var(--border); }.gantt-timeline { flex:1; display:flex; position:relative; }.gantt-hour { flex:1; padding:10px 4px; color:var(--muted); font-size:10px; }.gantt-body { overflow:auto; flex:1; }.gantt-cell { flex:1; border-right:1px solid var(--border); }.priority-dot { width:5px; height:5px; border-radius:50%; flex:none; }.dot-urgent { background:var(--danger); }.dot-normal { background:var(--warning); }.dot-low { background:var(--success); }.task-name { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }.gantt-bar { position:absolute; top:7px; height:23px; border-radius:4px; color:#fff; font-size:10px; padding:4px; white-space:nowrap; overflow:hidden; }.bar-executing { background:#2563c9; }.bar-waiting { background:#a56b06; }.bar-completed { background:#08775b; }.gantt-legend { display:flex; gap:16px; padding:12px; color:var(--muted); }.legend-item { display:flex; gap:5px; align-items:center; font-size:11px; }.legend-dot { display:inline-block; width:8px; height:8px; border-radius:2px; }.executing { background:#2563c9; }.waiting { background:#a56b06; }.completed { background:#08775b; }
 </style>

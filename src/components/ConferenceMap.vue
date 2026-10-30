@@ -2,36 +2,22 @@
   <div class="conference-map">
     <div ref="container" class="map-canvas"></div>
     <div v-if="loading || failure" class="map-message">
-      {{ failure || 'Loading conference scene…' }}
-      <button v-if="failure" @click="initialize">Retry map</button>
+      {{ ui.t(failure ? 'mapFailure':'loadingMap') }}
+      <button v-if="failure" @click="initialize">{{ ui.t('retryMap') }}</button>
     </div>
-    <div v-if="!loading && !failure" class="map-tools">
-      <select v-model="floor" aria-label="Visible floor"><option value="all">All Floors</option><option v-for="f in floors" :key="f" :value="String(f)">{{ f }}F</option></select>
-      <label><input v-model="showRobots" type="checkbox"> Robots</label>
-      <label><input v-model="showRoute" type="checkbox"> Route</label>
-      <button @click="renderer?.fitCamera()">Reset View</button>
+    <div v-if="!loading && !failure" class="map-tools" @pointerdown.stop>
+      <select v-model="floor" :aria-label="ui.t('visibleFloor')"><option value="all">{{ ui.t('allFloors') }}</option><option v-for="f in floors" :key="f" :value="String(f)">{{ f }}F</option></select>
+      <details class="tool-menu"><summary>{{ ui.t('objects') }}</summary><div class="tool-popover object-options"><label><input v-model="showRobots" type="checkbox"> {{ ui.t('robots') }}</label><label><input v-model="showRoute" type="checkbox"> {{ ui.t('route') }}</label></div></details>
+      <button @click="renderer?.fitCamera()">{{ ui.t('resetView') }}</button>
+      <details class="tool-menu map-legend"><summary>{{ ui.t('legend') }}</summary><div class="tool-popover legend-content">
+        <div><i class="legend-node"></i><span>{{ ui.t('navigationPoint') }} (P1, P2…)</span></div>
+        <div><i class="legend-portal"></i><span>{{ ui.t('stairs') }}</span></div>
+        <div><i class="legend-robot"></i><span>{{ ui.t('robot') }} (R1–R8)</span></div>
+        <div><i class="legend-route"></i><span>{{ ui.t('selectedRoute') }}</span></div>
+        <div><i class="legend-start"></i><span>{{ ui.t('routeStart') }}</span><i class="legend-end"></i><span>{{ ui.t('routeEnd') }}</span></div>
+        <small>{{ ui.t('mapHelp') }}</small>
+      </div></details>
     </div>
-    <div v-if="store.selectedTask" class="assignment-panel" aria-live="polite">
-      <strong>{{ store.selectedTask.id }} · {{ store.selectedTask.name }}</strong>
-      <span>{{ getStatusText(store.selectedTask.status) }} · {{ store.selectedTask.robotId || (store.selectedTask.scheduleStage === 'scheduling' ? 'Scheduling' : 'Unassigned') }}</span>
-      <template v-if="store.selectedTask.scheduleStage === 'assigned'">
-        <span>Execution {{ formatDuration(store.selectedTask.estimatedTime) }} · {{ formatDuration(store.selectedTask.remaining) }} remaining</span>
-        <span>Planned start {{ wallTime(store.selectedTask.startTime) }} · Finish {{ wallTime(store.selectedTask.finishTime) }}</span>
-        <progress :value="store.selectedTask.duration" :max="store.selectedTask.estimatedTime || 1"></progress>
-        <div class="assignment-route">{{ store.formatRoute(store.selectedTask.path) }}</div>
-      </template>
-      <span v-else>{{ store.selectedTask.reason }}</span>
-      <button v-if="store.selectedTask.status === 'failed'" @click="store.retryTask(store.selectedTask)">Retry task</button>
-    </div>
-    <details v-if="!loading && !failure" class="map-legend" open>
-      <summary>Map legend</summary>
-      <div><i class="legend-node"></i><span>Navigation point (P1, P2…)</span></div>
-      <div><i class="legend-portal"></i><span>Stairs 4F–5F</span></div>
-      <div><i class="legend-robot"></i><span>Robot (R1–R8)</span></div>
-      <div><i class="legend-route"></i><span>Selected task route</span></div>
-      <div><i class="legend-start"></i><span>Route start</span><i class="legend-end"></i><span>Route end</span></div>
-      <small>Hover for details. Drag to rotate.<br>Right drag to pan · Scroll to zoom</small>
-    </details>
     <div v-if="tooltip" class="map-tooltip" role="tooltip" :style="{left:`${hover.left}px`, top:`${hover.top}px`}">
       <strong>{{ tooltip.title }}</strong>
       <dl><template v-for="row in tooltip.rows" :key="row[0]"><dt>{{ row[0] }}</dt><dd>{{ row[1] }}</dd></template></dl>
@@ -45,9 +31,10 @@ import yaml from 'js-yaml'
 import { useAppStore } from '../stores/appStore'
 import { Map3DRenderer } from '../utils/map3dRenderer'
 import { parsePGM, pixelsToCanvas } from '../utils/pgmParser'
-import { formatDuration, getStatusText } from '../utils/demo'
+import { useUiStore } from '../stores/uiStore'
 import { waypointColor, findMapTarget, tooltipPosition } from '../utils/mapInteraction.js'
-const store = useAppStore()
+import { mapThemes } from '../utils/mapTheme.js'
+const store = useAppStore(), ui = useUiStore()
 const container = ref(null), loading = ref(true), failure = ref(''), floor = ref('all')
 const showRobots = ref(true), showRoute = ref(true)
 const floors = computed(() => [...new Set(store.locations.filter(location => location.selectable).map(location => location.floor))].sort((a,b) => a-b))
@@ -65,21 +52,21 @@ const tooltip = computed(() => {
     if (!node) return null
     const place = store.locationById[node.locationId]
     if (!place) return null
-    return {title:place.label, rows:[['Location', place.floorLabel], ['Point',place.code],
-      ['Type',place.kind === 'stairs' ? 'Stair waypoint' : 'Navigation point'],
-      ['Neighbours',place.neighbours.map(id => store.locationById[id]?.label || 'Unknown location').join(', ') || '—'],
-      ['Position (m)',coordinates(place.position)]]}
+    return {title:ui.display(place.label), rows:[[ui.t('location'), ui.display(place.floorLabel)], [ui.t('point'),place.code],
+      [ui.t('type'),ui.t(place.kind === 'stairs' ? 'stairPoint':'navigationPoint')],
+      [ui.t('neighbours'),place.neighbours.map(id => ui.display(store.locationById[id]?.label || 'Unknown location')).join(', ') || '—'],
+      [ui.t('position'),coordinates(place.position)]]}
   }
   const robot = store.robots.find(r => r.id === target.id)
   if (!robot) return null
   const location = store.robotLocation(robot)
   const task = store.tasks.find(t => t.id === location.taskId)
-  return {title:`Robot ${robot.id}`, rows:[['Status', robot.status === 'executing' ? 'In Progress' : 'Idle'],
-    ['Location', location.floorLabel],
-    [location.inTransit ? 'Moving' : 'At node', location.nodeText],
-    ['Task', task ? `${task.id} · ${task.name}` : 'None'],
-    ...(task ? [['Remaining', formatDuration(task.remaining)]] : []),
-    ['Position (m)', coordinates(store.robotPosition(robot, store.uiNow))]]}
+  return {title:`${ui.t('robot')} ${robot.id}`, rows:[[ui.t('status'), ui.t(robot.status)],
+    [ui.t('location'), ui.display(location.floorLabel)],
+    [ui.t(location.inTransit ? 'moving':'atNode'), ui.display(location.nodeText)],
+    [ui.t('task'), task ? `${task.id} · ${task.name}` : ui.t('none')],
+    ...(task ? [[ui.t('remaining'), ui.duration(task.remaining)]] : []),
+    [ui.t('position'), coordinates(store.robotPosition(robot, store.uiNow))]]}
 })
 function clearHover() { pointerPosition = null; hover.value = null }
 function pointerMove(event) {
@@ -100,9 +87,6 @@ function pickTarget() {
   if (!hit) { hover.value = null; return }
   const position = tooltipPosition(pointerPosition.x, pointerPosition.y, rect.width, rect.height)
   hover.value = {target:hit, ...position}
-}
-function wallTime(seconds) {
-  return new Date((store.clock.epoch + seconds) * 1000).toLocaleTimeString('en-GB', { timeZone: 'Asia/Shanghai' })
 }
 function vector(pos, lift = 0) { return new THREE.Vector3(pos.x, pos.z * 3 + lift, -pos.y) }
 function disposeObject(object) {
@@ -134,7 +118,7 @@ async function initialize() {
     if (dead) return
     store.setMaps(maps)
     renderer = new Map3DRenderer(container.value, {showCrossMapLinks:false})
-    renderer.init(); renderer.setData(maps)
+    renderer.init(); renderer.setData(maps); renderer.setTheme(ui.preferences.theme)
     renderer.onFrame = updateFrame
     const canvas = renderer.renderer.domElement
     canvas.addEventListener('pointermove', pointerMove)
@@ -144,17 +128,23 @@ async function initialize() {
     loading.value = false
   } catch (e) { failure.value = 'The map could not be loaded. Please retry.'; loading.value = false }
 }
+function drawRobotLabel(canvas, id) {
+  const ctx=canvas.getContext('2d'), light=ui.preferences.theme==='light'
+  ctx.clearRect(0,0,128,64); ctx.fillStyle=light ? '#ffffff':'#142135'; ctx.fillRect(0,0,128,64)
+  ctx.fillStyle=light ? '#172b41':'#e0eaf4'; ctx.font='bold 32px Arial'; ctx.textAlign='center'; ctx.fillText(id,64,43)
+}
 function makeRobot(id) {
   const mesh = new THREE.Group()
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .8, 16), new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xfbbf24, emissiveIntensity: .3 }))
+  const color=mapThemes[ui.preferences.theme].robot
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .8, 16), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .3 }))
+  body.userData.themeRole='robot'
   mesh.add(body)
   const front = new THREE.Mesh(new THREE.ConeGeometry(.23, .6, 3), new THREE.MeshBasicMaterial({ color: 0xffffff }))
   front.rotation.x = Math.PI / 2; front.position.z = .5; mesh.add(front)
   const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 64
-  const ctx = canvas.getContext('2d'); ctx.fillStyle = '#101c30'; ctx.fillRect(0, 0, 128, 64)
-  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center'; ctx.fillText(id, 64, 43)
+  drawRobotLabel(canvas, id)
   const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), depthTest: false }))
-  label.scale.set(2, 1, 1); label.position.y = 1.4; mesh.add(label)
+  label.name='robot-label'; label.scale.set(2, 1, 1); label.position.y = 1.4; mesh.add(label)
   mesh.userData.robotId = id
   renderer.scene.add(mesh)
   return mesh
@@ -191,7 +181,8 @@ function updateFrame() {
         if (!visible(i-1) || !visible(i)) continue
         const delta=points[i].clone().sub(points[i-1])
         if (delta.length() < 1e-6) continue
-        const segment=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,delta.length(),8),new THREE.MeshBasicMaterial({color:0x38bdf8,depthTest:false}))
+        const segment=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,delta.length(),8),new THREE.MeshBasicMaterial({color:mapThemes[ui.preferences.theme].route,depthTest:false}))
+        segment.userData.themeRole='route'
         segment.position.copy(points[i-1]).addScaledVector(delta,.5)
         segment.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize())
         segment.renderOrder=1000; routeGroup.add(segment)
@@ -199,7 +190,9 @@ function updateFrame() {
       for (const [i, index] of [0, points.length-1].entries()) {
         if (index < 0 || !visible(index)) continue
         const point = points[index]
-        const marker = new THREE.Mesh(new THREE.SphereGeometry(.4, 12, 12), new THREE.MeshBasicMaterial({ color: i ? 0x34d399 : 0x38bdf8, depthTest: false }))
+        const role=i ? 'end':'start'
+        const marker = new THREE.Mesh(new THREE.SphereGeometry(.4, 12, 12), new THREE.MeshBasicMaterial({ color:mapThemes[ui.preferences.theme][role], depthTest: false }))
+        marker.userData.themeRole=role
         marker.position.copy(point); marker.renderOrder = 1001; routeGroup.add(marker)
       }
       renderer.scene.add(routeGroup)
@@ -208,10 +201,20 @@ function updateFrame() {
 }
 watch(floor, value => {
   clearHover()
-  for (const m of store.maps) m.visible = value === 'all' || (m.mapType !== 'stair' && String(m.floor) === value)
-  renderer?.render()
+  for (const m of store.maps) {
+    m.visible = value === 'all' || (m.mapType !== 'stair' && String(m.floor) === value)
+    const group=renderer?.mapGroups.get(m.mapName)
+    if(group) group.visible=m.visible
+  }
 })
 watch(showRobots, clearHover)
+watch(()=>ui.preferences.theme,theme=>{
+  renderer?.setTheme(theme)
+  for(const [id,mesh] of meshes) {
+    const texture=mesh.getObjectByName('robot-label')?.material.map
+    if(texture) { drawRobotLabel(texture.image,id); texture.needsUpdate=true }
+  }
+})
 onMounted(initialize)
 onUnmounted(() => {
   dead = true
@@ -229,25 +232,17 @@ onUnmounted(() => {
 </script>
 <style scoped>
 .conference-map,.map-canvas { position:absolute; inset:0; }
-.map-message { position:absolute; inset:0; display:flex; gap:16px; align-items:center; justify-content:center; background:#0a0e14; color:#cbd5e1; }
-.map-tools { position:absolute; top:64px; left:var(--map-overlay-left,340px); display:flex; gap:12px; align-items:center; color:#cbd5e1; font-size:12px; background:#101c30dd; padding:8px 12px; border-radius:8px; }
-button,select { background:#1e293b; color:#e2e8f0; border:1px solid #334155; padding:4px 8px; border-radius:5px; cursor:pointer; }
-.assignment-panel { position:absolute; top:112px; left:var(--map-overlay-left,340px); width:330px; max-height:240px; overflow:auto; display:flex; gap:7px; flex-direction:column; color:#cbd5e1; font-size:12px; padding:14px; border:1px solid #38bdf844; border-radius:10px; background:#0f172ae8; }
-.assignment-panel strong { color:#e2e8f0; font-size:13px; }
-.assignment-panel progress { width:100%; height:7px; accent-color:#38bdf8; }
-.assignment-route { color:#7dd3fc; overflow-wrap:anywhere; line-height:1.6; }
-.map-legend { position:absolute; bottom:20px; left:var(--map-overlay-left,340px); width:226px; padding:10px 12px; border:1px solid #334155; border-radius:8px; background:#0f172ae8; color:#cbd5e1; font-size:11px; }
-.map-legend summary { cursor:pointer; font-size:12px; font-weight:600; color:#e2e8f0; }
-.map-legend>div { display:flex; gap:8px; align-items:center; margin-top:7px; }
-.map-legend i { display:inline-block; width:9px; height:9px; flex-shrink:0; border-radius:50%; }
-.legend-node { background:#00b894; } .legend-portal { background:#a29bfe; }
-.map-legend .legend-robot { border-radius:2px; background:#fbbf24; }
-.map-legend .legend-route { height:3px; background:#38bdf8; border-radius:0; }
-.legend-start { background:#38bdf8; } .legend-end { background:#34d399; }
-.map-legend small { display:block; margin-top:9px; color:#94a3b8; font-size:10px; line-height:1.5; }
-.map-tooltip { position:absolute; z-index:30; pointer-events:none; width:248px; max-width:calc(100% - 16px); padding:12px; border:1px solid #64748b; border-radius:8px; background:#0b1425f5; box-shadow:0 8px 24px #0008; color:#e2e8f0; font-size:11px; }
-.map-tooltip strong { font-size:13px; }
-.map-tooltip dl { display:grid; grid-template-columns:80px minmax(0,1fr); gap:6px 8px; margin-top:8px; }
-.map-tooltip dt { color:#94a3b8; } .map-tooltip dd { margin:0; overflow-wrap:anywhere; }
-@media(max-width:800px) { .map-tools { left:26px; top:calc(var(--header-height,110px) + 12px); flex-wrap:wrap; } .assignment-panel { left:26px; top:calc(var(--header-height,110px) + 62px); width:240px; max-height:150px; } .map-legend { bottom:12px; left:26px; width:226px; max-height:170px; overflow:auto; } }
+.map-message { position:absolute; inset:0; display:flex; gap:16px; align-items:center; justify-content:center; background:var(--bg); color:var(--text); }
+.map-tools { position:absolute; z-index:11; bottom:12px; left:var(--left-space,320px); right:var(--right-space,320px); display:flex; justify-content:center; gap:6px; align-items:center; flex-wrap:wrap; pointer-events:none; }
+.map-tools>* { pointer-events:auto; box-shadow:var(--shadow); background:var(--surface); font-size:11px; }
+.map-tools select,.map-tools button,.tool-menu>summary { height:34px; padding:7px 9px; white-space:nowrap; }
+.tool-menu { position:relative; border-radius:6px; border:1px solid var(--border); }
+.tool-menu>summary { cursor:pointer; list-style:none; }
+.tool-menu[open]>summary { color:var(--accent); background:var(--accent-soft); border-radius:6px; }
+.tool-popover { position:absolute; bottom:calc(100% + 8px); right:0; border:1px solid var(--border); border-radius:8px; background:var(--surface-solid); box-shadow:var(--shadow); padding:12px; color:var(--text); }
+.object-options { display:flex; flex-direction:column; gap:10px; min-width:140px; }.object-options label { display:flex; align-items:center; gap:7px; }
+.legend-content { width:238px; }.legend-content>div { display:flex; gap:8px; align-items:center; margin-top:7px; }.legend-content i { display:inline-block; width:9px; height:9px; flex-shrink:0; border-radius:50%; }.legend-content small { display:block; margin-top:10px; color:var(--muted); font-size:10px; line-height:1.6; }
+.legend-node { background:var(--map-node); }.legend-portal { background:var(--map-stair); }.legend-content .legend-robot { border-radius:2px; background:var(--map-robot); }.legend-content .legend-route { height:3px; background:var(--map-route); border-radius:0; }.legend-start { background:var(--map-route); }.legend-end { background:var(--map-end); }
+.map-tooltip { position:absolute; z-index:30; pointer-events:none; width:248px; max-width:calc(100% - 16px); padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--surface-solid); box-shadow:var(--shadow); color:var(--text); font-size:11px; }.map-tooltip strong { font-size:13px; }.map-tooltip dl { display:grid; grid-template-columns:80px minmax(0,1fr); gap:6px 8px; margin-top:8px; }.map-tooltip dt { color:var(--muted); }.map-tooltip dd { margin:0; overflow-wrap:anywhere; }
+@media(max-width:800px) { .map-tools { bottom:60px; left:8px; right:8px; gap:5px; }.map-tools select,.map-tools button,.tool-menu>summary { min-height:36px; padding:8px; }.map-legend .tool-popover { right:0; }.legend-content { max-width:calc(100vw - 20px); } }
 </style>

@@ -1,0 +1,4 @@
+export const mapThemes = {
+  light: { node:0x008361, stair:0x7451c2, robot:0xc48a0b, front:0xffffff, route:0x087ba8, start:0x087ba8, end:0x078261 },
+  dark: { node:0x00b894, stair:0xa29bfe, robot:0xfbbf24, front:0xffffff, route:0x38bdf8, start:0x38bdf8, end:0x34d399 },
+}

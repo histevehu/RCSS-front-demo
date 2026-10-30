@@ -1,10 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN" data-theme="light">
 <head>
     <link rel="icon" href="data:,">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hospital Robot Task Dispatch System</title>
+    <title>机器人任务调度中心</title>
+    <script>
+      try {
+        const saved = JSON.parse(localStorage.getItem('rcss-ui-v1') || '{}')
+        document.documentElement.dataset.theme = saved?.theme === 'dark' ? 'dark' : 'light'
+        document.documentElement.lang = saved?.locale === 'en-US' ? 'en-US' : 'zh-CN'
+      } catch {}
+    </script>
 </head>
 <body>
     <div id="app"></div>

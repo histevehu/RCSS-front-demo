@@ -1,154 +1,34 @@
 <template>
-  <Teleport to="body">
-    <Transition name="modal">
-      <div 
-        v-if="modelValue" 
-        class="modal-overlay"
-        @click.self="close"
-      >
-        <div class="modal-backdrop"></div>
-        <div class="modal-container" :class="sizeClass">
-          <div class="modal-header">
-            <h3 class="modal-title">{{ title }}</h3>
-            <button @click="close" class="modal-close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <slot></slot>
-          </div>
-          <div v-if="$slots.footer" class="modal-footer">
-            <slot name="footer"></slot>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <Teleport to="body"><div v-if="modelValue" class="modal-overlay" @click.self="close" @keydown.esc.stop="close">
+    <section ref="dialog" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" class="modal-container" :class="`modal-${size}`" @keydown.tab="trapFocus">
+      <div class="modal-header"><h3 :id="titleId">{{ title }}</h3><button :aria-label="ui.t('close')" @click="close">×</button></div>
+      <div class="modal-body"><slot /></div><div v-if="$slots.footer" class="modal-footer"><slot name="footer" /></div>
+    </section>
+  </div></Teleport>
 </template>
-
 <script setup>
-import { computed } from 'vue'
-
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    default: false
-  },
-  title: {
-    type: String,
-    default: ''
-  },
-  size: {
-    type: String,
-    default: 'md' // sm, md, lg, xl, full
-  }
-})
-
-const emit = defineEmits(['update:modelValue'])
-
-const sizeClass = computed(() => {
-  const sizes = {
-    sm: 'w-[400px]',
-    md: 'w-[600px]',
-    lg: 'w-[800px]',
-    xl: 'w-[1000px]',
-    full: 'w-[95vw] h-[90vh]',
-  }
-  return sizes[props.size] || sizes.md
-})
-
-function close() {
-  emit('update:modelValue', false)
+import {ref,watch,nextTick,onUnmounted,useId} from 'vue'
+import {useUiStore} from '../../stores/uiStore'
+const props=defineProps({modelValue:Boolean,title:String,size:{type:String,default:'md'}}),emit=defineEmits(['update:modelValue'])
+const ui=useUiStore(),dialog=ref(null),titleId=useId()
+let previousFocus
+function close() { emit('update:modelValue',false) }
+function trapFocus(event) {
+  const elements=[...dialog.value.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]')]
+  const first=elements[0],last=elements.at(-1)
+  if(!first) { event.preventDefault(); return }
+  if(event.shiftKey && (document.activeElement===first || document.activeElement===dialog.value)) { event.preventDefault(); last.focus() }
+  else if(!event.shiftKey && document.activeElement===last) { event.preventDefault(); first.focus() }
 }
+watch(()=>props.modelValue,async open=>{
+  if(open) { previousFocus=document.activeElement; await nextTick(); (dialog.value?.querySelector('input,select,textarea') || dialog.value)?.focus() }
+  else previousFocus?.focus?.()
+})
+onUnmounted(()=>previousFocus?.focus?.())
 </script>
-
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-}
-
-.modal-container {
-  position: relative;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
-  max-height: 90vh;
-  max-width:calc(100vw - 24px);
-  overflow: auto;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.modal-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.modal-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: rgba(255, 255, 255, 0.5);
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.modal-close:hover {
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-active .modal-container,
-.modal-leave-active .modal-container {
-  transition: transform 0.2s ease;
-}
-
-.modal-enter-from .modal-container,
-.modal-leave-to .modal-container {
-  transform: scale(0.95);
-}
+.modal-overlay { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:12px; background:var(--backdrop); backdrop-filter:blur(3px); }
+.modal-container { width:500px; max-width:100%; max-height:90dvh; display:flex; flex-direction:column; background:var(--surface-solid); border:1px solid var(--border); border-radius:12px; box-shadow:0 20px 70px #0003; outline:none; }
+.modal-xl { width:1000px; }.modal-lg { width:800px; }.modal-sm { width:400px; }.modal-header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); flex:none; }.modal-header h3 { font-size:14px; font-weight:600; }.modal-header button { font-size:20px; width:32px; height:32px; padding:0; border:0; background:transparent; }.modal-body { padding:14px; overflow:auto; overscroll-behavior:contain; min-height:0; }.modal-footer { padding:12px; border-top:1px solid var(--border); }
+@media(max-width:800px) { .modal-header button { width:44px; height:44px; }.modal-container { max-height:calc(100dvh - 24px); } }
 </style>

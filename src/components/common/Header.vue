@@ -1,177 +1,43 @@
 <template>
-  <header ref="headerElement" class="header">
-    <div class="header-inner">
-      <div class="header-left">
-        <h1 class="header-title">{{ title }}</h1>
-        <span class="demo-mode">Live Scheduling · Simulated Execution</span>
-      </div>
-
-      <div class="header-right">
-        <div class="status-indicator">
-          <span class="status-dot"></span>
-          <span class="status-text">{{ store.connected ? (store.clock.paused ? 'Paused' : 'Connected') : 'Disconnected' }}</span>
-        </div>
-        <div class="header-time">{{ currentTimeStr }}</div>
-        <button :disabled="!store.connected || store.busy" @click="store.control({ paused: !store.clock.paused })">{{ store.clock.paused ? 'Resume' : 'Pause' }}</button>
-        <select aria-label="Demo speed" :value="store.clock.speed" :disabled="!store.connected || store.busy" @change="store.control({ speed: Number($event.target.value) })"><option v-for="speed in [1,2,5,10]" :key="speed" :value="speed">{{ speed }}×</option></select>
-        <button :disabled="!store.connected || store.busy" @click="store.control({}, true)">Reset Demo</button>
-        <router-link :to="$route.path === '/' ? '/tasks' : '/'">{{ $route.path === '/' ? 'Task Panel' : 'Dashboard' }}</router-link>
-        <slot name="actions"></slot>
-      </div>
+  <header ref="headerElement" class="workspace-header">
+    <div class="brand"><strong>{{ ui.t('appTitle') }}</strong><span>{{ ui.t('liveMode') }}</span></div>
+    <nav :aria-label="ui.t('tasks')" class="view-tabs"><router-link to="/">{{ ui.t('overview') }}</router-link><router-link to="/tasks">{{ ui.t('tasks') }}</router-link></nav>
+    <div class="header-controls">
+      <span class="connection" :class="{ offline:!store.connected }" :title="connectionText"><i></i><span>{{ connectionText }}</span></span>
+      <time>{{ time }}</time>
+      <button :disabled="!store.connected || store.busy" @click="store.control({paused:!store.clock.paused})">{{ ui.t(store.clock.paused ? 'resume':'pause') }}</button>
+      <select :aria-label="ui.t('speed')" :value="store.clock.speed" :disabled="!store.connected || store.busy" @change="store.control({speed:Number($event.target.value)})"><option v-for="speed in [1,2,5,10]" :key="speed" :value="speed">{{ speed }}×</option></select>
+      <button :disabled="!store.connected || store.busy" @click="store.control({},true)">{{ ui.t('reset') }}</button>
+      <button class="focus-button" :aria-pressed="focus" @click="$emit('focus')">{{ ui.t(focus ? 'exitFocus':'focus') }}</button>
+      <select v-model="ui.preferences.locale" :aria-label="ui.t('language')"><option value="zh-CN">中文</option><option value="en-US">English</option></select>
+      <button :aria-label="ui.t('theme')" :title="ui.t(ui.preferences.theme === 'light' ? 'dark':'light')" @click="ui.preferences.theme = ui.preferences.theme === 'light' ? 'dark':'light'">{{ ui.preferences.theme === 'light' ? '◐' : '☀' }}</button>
     </div>
-    <div v-if="store.error" class="demo-error" role="alert">{{ store.error }}</div>
+    <div v-if="store.error" role="alert" class="demo-error">{{ ui.errorText(store.error) }}</div>
   </header>
 </template>
-
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../../stores/appStore'
-
-defineProps({
-  title: {
-    type: String,
-    default: 'Task Dispatch Center'
-  }
-})
-
-const headerElement = ref(null)
+import { useUiStore } from '../../stores/uiStore'
+defineProps({focus:Boolean})
+defineEmits(['focus'])
+const store=useAppStore(), ui=useUiStore(), headerElement=ref(null)
+const connectionText=computed(()=>ui.t(!store.connected ? 'disconnected' : store.clock.paused ? 'paused':'connected'))
+const time=computed(()=>store.currentTime.toLocaleTimeString(ui.preferences.locale,{timeZone:'Asia/Shanghai',hour12:false}))
 let observer
-onMounted(() => {
-  observer = new ResizeObserver(() => document.documentElement.style.setProperty('--header-height', `${headerElement.value.offsetHeight}px`))
-  observer.observe(headerElement.value)
-})
-onUnmounted(() => observer?.disconnect())
-const store = useAppStore()
-const currentTimeStr = computed(() => store.currentTime.toLocaleTimeString('en-GB', {timeZone:'Asia/Shanghai'}))
+onMounted(()=>{ observer=new ResizeObserver(()=>document.documentElement.style.setProperty('--header-height',`${headerElement.value.offsetHeight}px`)); observer.observe(headerElement.value) })
+onUnmounted(()=>observer?.disconnect())
 </script>
-
 <style scoped>
-.demo-mode { color:#7dd3fc; font-size:11px; }
-.header-right button,.header-right select,.header-right a { color:#e2e8f0; background:#1e293b; border:1px solid #334155; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:12px; text-decoration:none; }
-.header-right button:disabled { opacity:.4; cursor:default; }
-.demo-error { position:absolute; top:100%; left:50%; transform:translateX(-50%); background:#7f1d1d; color:#fee2e2; padding:7px 20px; border-radius:0 0 8px 8px; font-size:12px; }
-@media(max-width:1200px) { .demo-mode,.header-time { display:none; } .header-right { gap:6px !important; } }
-@media(max-width:800px) { .header-inner { height:auto !important; min-height:90px; flex-wrap:wrap; gap:5px; padding:8px !important; } .header-right { flex-wrap:wrap; } }
-
-.header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
-  background: rgba(10, 14, 20, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.header-inner {
-  height: 52px;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.header-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-  letter-spacing: -0.01em;
-}
-
-.header-divider {
-  width: 1px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.district-select {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.district-select select {
-  appearance: none;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 6px 32px 6px 12px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.district-select select:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.district-select select:focus {
-  outline: none;
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-}
-
-.district-select select option {
-  background: #1e293b;
-  color: #fff;
-}
-
-.select-arrow {
-  position: absolute;
-  right: 10px;
-  pointer-events: none;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-  animation: statusPulse 2s ease-in-out infinite;
-}
-
-@keyframes statusPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-.status-text {
-  font-size: 12px;
-  color: rgba(16, 185, 129, 0.9);
-  font-weight: 500;
-}
-
-.header-time {
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-  font-variant-numeric: tabular-nums;
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 6px;
-}
+.workspace-header { position:absolute; inset:0 0 auto; z-index:20; min-height:48px; padding:7px 12px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.brand { display:flex; flex-direction:column; gap:2px; flex-shrink:0; }.brand strong { font-size:13px; }.brand>span { font-size:9px; color:var(--muted); }
+.view-tabs { display:flex; align-items:center; padding:2px; border:1px solid var(--border); border-radius:7px; gap:2px; }
+.view-tabs a { padding:5px 10px; text-decoration:none; color:var(--muted); border-radius:4px; white-space:nowrap; }
+.view-tabs a.router-link-exact-active { color:var(--accent); background:var(--accent-soft); font-weight:600; }
+.header-controls { margin-left:auto; display:flex; gap:6px; align-items:center; }.header-controls button,.header-controls select { height:30px; padding:4px 8px; white-space:nowrap; }
+.connection { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--success); }.connection i { width:6px; height:6px; border-radius:50%; background:currentColor; }.connection.offline { color:var(--danger); }
+time { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; margin:0 3px; }
+.demo-error { position:absolute; top:100%; left:50%; transform:translateX(-50%); max-width:90vw; padding:8px 14px; border:1px solid var(--danger); background:var(--surface-solid); color:var(--danger); border-radius:0 0 8px 8px; }
+@media(max-width:1199px) { .brand>span,time,.connection>span { display:none; }.workspace-header { gap:10px; } }
+@media(max-width:800px) { .workspace-header { gap:8px; }.brand { flex:1; }.brand strong { font-size:12px; }.header-controls { width:100%; margin:0; flex-wrap:wrap; gap:5px; }.header-controls button,.header-controls select { min-height:32px; padding:4px 7px; }.focus-button { display:none; } }
 </style>
