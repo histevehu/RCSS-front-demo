@@ -9,11 +9,11 @@ node_list:
         - p7
       node_type: "3"
       connect:
-        - map_name: floot4_inner
+        - map_name: zone_3
           floor: 4
           reverse: true
           target_node: p6
-        - map_name: floot4_inner
+        - map_name: zone_3
           floor: 4
           reverse: true
           target_node: p5

@@ -8,9 +8,9 @@ import yaml from 'js-yaml'
 
 // 已知地图列表（由于浏览器无法扫描目录，需要预定义）
 const MAP_LIST = [
-  { name: 'floot_1', folder: 'floot_1' },
-  { name: 'floot_2', folder: 'floot_2' },
-  { name: 'floot4_inner', folder: 'floot4_inner' },
+  { name: 'zone_1', folder: 'zone_1' },
+  { name: 'zone_2', folder: 'zone_2' },
+  { name: 'zone_3', folder: 'zone_3' },
   { name: 'stairs_1', folder: 'stairs_1', mapType: 'stair' }
 ]
 

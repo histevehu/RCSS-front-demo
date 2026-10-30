@@ -117,3 +117,20 @@ test('tooltip stays inside the canvas and portal colour matches the legend', asy
   assert.equal(waypointColor({connections:[]}),NAVIGATION_COLOR)
   assert.equal(waypointColor({connections:[{mapName:'other',waypointCode:'p1'}]}),CONNECTION_COLOR)
 })
+
+test('packaged map names and image references use sequential zone IDs', async () => {
+  const {readdir,readFile,access}=await import('node:fs/promises')
+  const yaml=await import('js-yaml')
+  const root=new URL('../public/maps/',import.meta.url)
+  const names=(await readdir(root,{withFileTypes:true})).filter(entry=>entry.isDirectory()).map(entry=>entry.name).sort()
+  assert.deepEqual(names,['stairs_1','zone_1','zone_2','zone_3'])
+  for(const name of names) {
+    const config=yaml.load(await readFile(new URL(`${name}/${name}.yaml`,root),'utf8'))
+    assert.equal(config.image,`${name}.pgm`)
+    await access(new URL(`${name}/${config.image}`,root))
+    const topology=yaml.load(await readFile(new URL(`${name}/${name}_topo.yaml`,root),'utf8'))
+    for(const node of topology.node_list) for(const connection of node.connect || []) {
+      assert.ok(names.includes(connection.map_name),`Unknown map ${connection.map_name}`)
+    }
+  }
+})

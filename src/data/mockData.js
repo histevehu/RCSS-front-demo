@@ -9,7 +9,7 @@ export const tasks = [
     duration: 135, // 2m15s
     estimatedTime: 210, // 3m30s
     // 路线由拓扑网络节点组成（同一地图）
-    routeNodes: ['floot_1:p2', 'floot_1:p4'],
+    routeNodes: ['zone_1:p2', 'zone_1:p4'],
     createdAt: new Date('2026-01-12T14:25:00'),
   },
   {
@@ -20,7 +20,7 @@ export const tasks = [
     robotId: 'R1',
     duration: 65, // 1m05s
     estimatedTime: 250, // 4m10s
-    routeNodes: ['floot_2:p2', 'floot_2:p4'],
+    routeNodes: ['zone_2:p2', 'zone_2:p4'],
     createdAt: new Date('2026-01-12T14:26:00'),
   },
   {
@@ -42,7 +42,7 @@ export const tasks = [
     robotId: 'R2',
     duration: 180,
     estimatedTime: 240,
-    routeNodes: ['floot_1:p2', 'floot_1:p5'],
+    routeNodes: ['zone_1:p2', 'zone_1:p5'],
     createdAt: new Date('2026-01-12T14:20:00'),
   },
   {
@@ -53,7 +53,7 @@ export const tasks = [
     robotId: 'R5',
     duration: 90,
     estimatedTime: 180,
-    routeNodes: ['floot_2:p2', 'floot_2:p5'],
+    routeNodes: ['zone_2:p2', 'zone_2:p5'],
     createdAt: new Date('2026-01-12T14:22:00'),
   },
   {
@@ -64,7 +64,7 @@ export const tasks = [
     robotId: null,
     duration: 0,
     estimatedTime: 330, // 5m30s
-    routeNodes: ['floot4_inner:p2', 'floot4_inner:p4'],
+    routeNodes: ['zone_3:p2', 'zone_3:p4'],
     createdAt: new Date('2026-01-12T14:15:00'),
   },
   {
@@ -75,7 +75,7 @@ export const tasks = [
     robotId: null,
     duration: 0,
     estimatedTime: 135, // 2m15s
-    routeNodes: ['floot_2:p3', 'floot_2:p5'],
+    routeNodes: ['zone_2:p3', 'zone_2:p5'],
     createdAt: new Date('2026-01-12T14:18:00'),
   },
   {
@@ -86,7 +86,7 @@ export const tasks = [
     robotId: null,
     duration: 0,
     estimatedTime: 0,
-    routeNodes: ['floot_1:p7', 'floot_1:p3'],
+    routeNodes: ['zone_1:p7', 'zone_1:p3'],
     createdAt: new Date('2026-01-12T14:30:00'),
   },
   {
@@ -97,7 +97,7 @@ export const tasks = [
     robotId: 'R6',
     duration: 45,
     estimatedTime: 150,
-    routeNodes: ['floot4_inner:p2', 'floot4_inner:p5'],
+    routeNodes: ['zone_3:p2', 'zone_3:p5'],
     createdAt: new Date('2026-01-12T14:27:00'),
   },
   {
@@ -108,7 +108,7 @@ export const tasks = [
     robotId: 'R7',
     duration: 120,
     estimatedTime: 200,
-    routeNodes: ['floot_1:p2', 'floot_1:p3'],
+    routeNodes: ['zone_1:p2', 'zone_1:p3'],
     createdAt: new Date('2026-01-12T14:23:00'),
   },
   {
@@ -119,7 +119,7 @@ export const tasks = [
     robotId: 'R8',
     duration: 200,
     estimatedTime: 280,
-    routeNodes: ['floot_2:p3', 'floot_2:p2'],
+    routeNodes: ['zone_2:p3', 'zone_2:p2'],
     createdAt: new Date('2026-01-12T14:19:00'),
   }
 ]

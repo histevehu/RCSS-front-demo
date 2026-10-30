@@ -45,7 +45,7 @@ node_list:
         - p4
       node_type: "2"
       connect:
-        - map_name: floot_1
+        - map_name: zone_1
           floor: 4
           reverse: false
           target_node: p1

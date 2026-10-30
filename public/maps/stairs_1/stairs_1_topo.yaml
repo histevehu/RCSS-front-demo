@@ -9,7 +9,7 @@ node_list:
         - p2
       node_type: "1"
       connect:
-        - map_name: floot_1
+        - map_name: zone_1
           floor: 4
           reverse: false
           target_node: p6
@@ -68,7 +68,7 @@ node_list:
         - p6
       node_type: "2"
       connect:
-        - map_name: floot_2
+        - map_name: zone_2
           floor: 5
           reverse: true
           target_node: p1
