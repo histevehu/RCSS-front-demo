@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
 import { api, formatDuration, interpolate } from '../utils/demo.js'
+import { describeRobotLocation } from '../utils/mapInteraction.js'
 
 export const useAppStore = defineStore('app', () => {
   const snapshot = shallowRef(null)
@@ -123,14 +124,14 @@ export const useAppStore = defineStore('app', () => {
     if (started.length) return interpolate(started.at(-1).trajectory, time)
     return robot.worldPosition
   }
-  function robotFloor(robot, time) {
-    const planned = (snapshot.value?.tasks || []).filter(t => t.robotId === robot.id && t.startTime <= time && t.scheduleStage === 'assigned').sort((a,b) => a.startTime-b.startTime)
-    const visit = planned.at(-1)?.timetable.filter(row => row.arrival <= time).at(-1)
-    return visit ? nodeById.value[visit.nodeId].floor : parseFloat(robot.position.floor)
+  function robotLocation(robot, time = uiNow.value) {
+    const initial = scene.value?.robots.find(r => r.name === robot.id)?.nodeId
+    return describeRobotLocation(robot, snapshot.value?.tasks || [], nodeById.value, time, initial)
   }
+  function robotFloor(robot, time) { return robotLocation(robot, time).floor }
   function selectTask(id) { selectedTaskId.value = id }
   function setMaps(data) { maps.value = data }
   return { scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
     selectedTaskId, selectedTask, currentTime, nodeById, maps, connected, busy, error,
-    loadScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, now }
+    loadScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
 })

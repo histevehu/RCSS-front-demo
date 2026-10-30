@@ -73,3 +73,47 @@ test('accepted task survives earlier in-flight poll and is selected', async () =
   finishOld(); await old
   assert.equal(s.tasks.length,1); assert.equal(s.selectedTaskId,'T001')
 })
+
+test('robot location distinguishes service holds, movement, cross-map travel and completion', async () => {
+  const {describeRobotLocation}=await import('../src/utils/mapInteraction.js')
+  const nodes={a:{id:'a',code:'mapA:p1',mapName:'mapA',floor:4},b:{id:'b',code:'mapB:p1',mapName:'mapB',floor:5}}
+  const robot={id:'R1',position:{floor:'4F',building:'mapA'}}
+  const tasks=[{id:'T1',robotId:'R1',scheduleStage:'assigned',startTime:0,finishTime:20,
+    timetable:[{nodeId:'a',arrival:0,depart:5},{nodeId:'b',arrival:15,depart:20}]}]
+  assert.equal(describeRobotLocation(robot,tasks,nodes,3,'a').nodeText,'p1')
+  const moving=describeRobotLocation(robot,tasks,nodes,10,'a')
+  assert.equal(moving.inTransit,true)
+  assert.equal(moving.nodeText,'p1 → mapB · p1')
+  assert.equal(moving.floor,4)
+  const finished=describeRobotLocation(robot,tasks,nodes,21,'a')
+  assert.equal(finished.floor,5)
+  assert.equal(finished.mapName,'mapB')
+  assert.equal(finished.taskId,null)
+  assert.equal(finished.inTransit,false)
+  assert.equal(describeRobotLocation(robot,[],nodes,0,'a').nodeText,'p1')
+})
+
+test('hover picking resolves mesh parents and ignores hidden floors or robots', async () => {
+  const {Group,Mesh}=await import('three')
+  const {findMapTarget}=await import('../src/utils/mapInteraction.js')
+  const floor=new Group(),marker=new Group(),body=new Mesh()
+  floor.add(marker);marker.add(body)
+  marker.userData={isWaypoint:true,waypoint:{nodeId:'mapA:p1'},mapName:'mapA'}
+  assert.equal(findMapTarget(body).id,'mapA:p1')
+  floor.visible=false
+  assert.equal(findMapTarget(body),null)
+  floor.visible=true
+  marker.userData={robotId:'R1'}
+  assert.deepEqual(findMapTarget(body),{kind:'robot',id:'R1'})
+  marker.visible=false
+  assert.equal(findMapTarget(body),null)
+})
+
+test('tooltip stays inside the canvas and portal colour matches the legend', async () => {
+  const {tooltipPosition,waypointColor,NAVIGATION_COLOR,CONNECTION_COLOR}=await import('../src/utils/mapInteraction.js')
+  const pos=tooltipPosition(790,590,800,600)
+  assert.ok(pos.left>=8 && pos.left+248<=792)
+  assert.ok(pos.top>=8 && pos.top+210<=592)
+  assert.equal(waypointColor({connections:[]}),NAVIGATION_COLOR)
+  assert.equal(waypointColor({connections:[{mapName:'other',waypointCode:'p1'}]}),CONNECTION_COLOR)
+})

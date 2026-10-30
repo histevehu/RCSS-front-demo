@@ -1,5 +1,6 @@
 <template>
   <div class="robot-content">
+    <div class="location-key">Floor · Map ID · Node / movement</div>
     <!-- 机器人列表 -->
     <div class="robot-list">
       <div
@@ -11,7 +12,7 @@
         <div class="robot-info">
           <span class="robot-dot" :class="statusDotClass(robot.status)"></span>
           <span class="robot-id">{{ robot.id }}</span>
-          <span class="robot-location">{{ formatRobotPos(robot) }}</span>
+          <span class="robot-location" :title="locationExplanation(robot)">{{ formatRobotPos(robot) }}</span>
         </div>
         <span class="robot-status" :class="statusClass(robot.status)">{{ statusText(robot.status) }}</span>
       </div>
@@ -66,13 +67,18 @@ function statusClass(status) {
 }
 
 function formatRobotPos(robot) {
-  if (!robot?.position) return ''
-  const { floor, location } = robot.position
-  return `${floor || ''} · ${location || ''}`
+  const location = store.robotLocation(robot)
+  return `${location.floor}F · ${location.mapName} · ${location.nodeText}`
 }
+function locationExplanation(robot) {
+  const location = store.robotLocation(robot)
+  return `Floor: ${location.floor}F\nMap ID: ${location.mapName}\n${location.inTransit ? 'Moving between nodes' : 'At node'}: ${location.nodeText}`
+}
+
 </script>
 
 <style scoped>
+.location-key { color:#94a3b8; font-size:10px; padding-bottom:8px; }
 .robot-content {
   display: flex;
   flex-direction: column;

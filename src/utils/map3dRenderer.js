@@ -555,8 +555,9 @@ export class Map3DRenderer {
     if (wp.pointType === '1') color = 0x0984e3 // 起点-蓝色
     else if (wp.pointType === '2') color = 0xd63031 // 终点-红色
 
-    // 跨地图连接点用紫色
+    // Optional semantic colours supplied by the conference scene.
     if (wp.linkedMapName) color = 0xa29bfe
+    if (wp.markerColor !== undefined) color = wp.markerColor
 
     // 底部阴影圆盘
     const shadowGeometry = new THREE.CircleGeometry(0.3, 32)

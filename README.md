@@ -48,3 +48,11 @@ npm run build
 ```
 
 Backend regressions and API tests are documented in its `demo/README.md`. The original `public/maps` assets remain as historical source; the running demo loads its versioned scene and map assets exclusively from the backend.
+
+## Reading the map
+
+Robot positions use **Floor · Map ID · Node**. `4F · floot_1 · p1` means node `p1` in map `floot_1` on floor 4. While travelling, the list shows the departure and arrival nodes (`p1 → p7`), rather than implying the robot remains at its last visited node. Each map has its own node numbers; `floot_1:p1` and `floot_2:p1` are different nodes.
+
+The inherited `floot_*` strings are map IDs, not floor numbers: `floot_1` and `floot4_inner` belong to 4F; `floot_2` belongs to 5F. `stairs_1` is the staircase between them, represented as 4.5F. The apparent `floor` spelling error is retained in IDs to preserve scene references.
+
+Both map views include a collapsible legend: green markers are navigation nodes, purple markers are valid map connections, yellow bodies are robots, and the cyan line is the selected task route with start/end markers. These colours describe the demonstration's topology; raw numeric node types do not imply an elevator or a task endpoint. Hover over a marker or robot for its floor, map, node/route, task and position. Position coordinates are physical metres before the visual 3× height exaggeration. Hidden floors/robots cannot trigger tooltips.
