@@ -4,7 +4,7 @@
     <div class="gantt-header">
       <div class="gantt-task-col">Task</div>
       <div class="gantt-timeline">
-        <div v-for="hour in hours" :key="hour" class="gantt-hour">{{ hour }}:00</div>
+        <div v-for="hour in hours" :key="hour" class="gantt-hour">+{{ Math.round(hour) }}s</div>
       </div>
     </div>
 
@@ -17,7 +17,7 @@
         </div>
         <div class="gantt-timeline">
           <div v-for="hour in hours" :key="hour" class="gantt-cell"></div>
-          <div class="gantt-bar" :class="getBarClass(task.status)" :style="getBarStyle(task)">
+          <div v-if="task.startTime != null" class="gantt-bar" :title="`${task.id}: +${task.startTime.toFixed(1)}s → +${task.finishTime.toFixed(1)}s`" :class="getBarClass(task.status)" :style="getBarStyle(task)">
             {{ task.robotId || 'Unassigned' }}
           </div>
         </div>
@@ -40,14 +40,8 @@ import { useAppStore } from '../../stores/appStore'
 const store = useAppStore()
 const tasks = computed(() => store.tasks)
 
-// 生成时间轴小时
-const hours = computed(() => {
-  const result = []
-  for (let i = 8; i <= 18; i++) {
-    result.push(i)
-  }
-  return result
-})
+const end = computed(() => Math.max(60, Math.ceil(Math.max(store.uiNow, ...tasks.value.map(t => t.finishTime || 0)) / 60) * 60))
+const hours = computed(() => Array.from({ length: 6 }, (_, i) => end.value * i / 6))
 
 function getPriorityDotClass(priority) {
   return {
@@ -66,17 +60,9 @@ function getBarClass(status) {
 }
 
 function getBarStyle(task) {
-  const created = new Date(task.createdAt)
-  const startHour = created.getHours()
-  const startMinute = created.getMinutes()
-  const totalMinutes = (18 - 8) * 60
-  const startOffset = ((startHour - 8) * 60 + startMinute) / totalMinutes * 100
-  const duration = task.estimatedTime || 300
-  const widthPercent = Math.min((duration / 60) / totalMinutes * 100 * 10, 20)
-  return {
-    left: `${Math.max(0, Math.min(startOffset, 95))}%`,
-    width: `${Math.max(widthPercent, 5)}%`,
-  }
+  return { left: `${task.startTime / end.value * 100}%`,
+    width: `${(task.finishTime - task.startTime) / end.value * 100}%`, minWidth:'2px' }
+
 }
 </script>
 
@@ -119,7 +105,7 @@ function getBarStyle(task) {
   flex: 1;
   padding: 10px 4px;
   font-size: 11px;
-  text-align: center;
+  text-align: left;
   color: rgba(255, 255, 255, 0.5);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
 }

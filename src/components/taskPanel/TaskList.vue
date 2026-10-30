@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAppStore } from '../../stores/appStore'
 import TaskCard from './TaskCard.vue'
 
@@ -55,14 +55,18 @@ const filters = [
   { label: 'All', value: 'all' },
   { label: 'Urgent', value: 'urgent' },
   { label: 'In Progress', value: 'executing' },
+  { label: 'Waiting', value: 'waiting' },
+  { label: 'Completed', value: 'completed' },
+  { label: 'Failed', value: 'failed' },
   { label: 'Today', value: 'today' },
 ]
 
 const currentFilter = ref(props.initialFilter)
+watch(() => props.initialFilter, value => { currentFilter.value = value })
 const selectedTaskId = computed(() => store.selectedTaskId)
 
 const filteredTasks = computed(() => store.getTasksByFilter(currentFilter.value))
-const totalTasks = computed(() => store.tasks.length + 62)
+const totalTasks = computed(() => store.stats.total)
 const executingCount = computed(() => store.stats.executing)
 
 function handleSelect(taskId) {
@@ -78,6 +82,7 @@ function handleSelect(taskId) {
 }
 
 .filter-bar {
+  flex-wrap:wrap;
   position: sticky;
   top: 0;
   z-index: 2;

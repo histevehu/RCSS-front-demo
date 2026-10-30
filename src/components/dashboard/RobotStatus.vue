@@ -67,9 +67,8 @@ function statusClass(status) {
 
 function formatRobotPos(robot) {
   if (!robot?.position) return ''
-  const { building, floor, location } = robot.position
-  const left = `${building || ''}${floor || ''}`
-  return `${left}${location ? ` · ${location}` : ''}`
+  const { floor, location } = robot.position
+  return `${floor || ''} · ${location || ''}`
 }
 </script>
 

@@ -4,7 +4,7 @@
       <div
         v-for="(task, index) in waitingQueue.slice(0, 5)"
         :key="task.id"
-        class="queue-item"
+        class="queue-item" @click="store.selectTask(task.id)"
         :class="{ 'queue-urgent': task.priority === 'urgent' }"
       >
         <div class="queue-priority" :class="getPriorityClass(task.priority)"></div>
@@ -14,8 +14,9 @@
             <span class="queue-name">{{ task.name }}</span>
           </div>
           <div class="queue-route">{{ getRouteText(task) }}</div>
+          <div class="queue-route">{{ task.scheduleStage === 'scheduling' ? 'Scheduling…' : task.reason }}</div>
         </div>
-        <div class="queue-time">{{ getWaitTime(task) }}</div>
+        <div class="queue-time">Waited {{ formatDuration(task.waitSeconds) }}<br><span v-if="task.startTime != null">Starts in {{ formatDuration(task.startTime - store.uiNow) }}</span></div>
       </div>
 
       <div v-if="waitingQueue.length === 0" class="queue-empty">
@@ -28,7 +29,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useAppStore } from '../../stores/appStore'
-import { formatDuration } from '../../data/mockData'
+import { formatDuration } from '../../utils/demo'
 
 const store = useAppStore()
 const waitingQueue = computed(() => store.waitingQueue)
@@ -43,6 +44,7 @@ function getPriorityClass(priority) {
 }
 
 function getRouteText(task) {
+  if (task.route?.length) return task.route.join(' → ')
   if (Array.isArray(task.routeNodes) && task.routeNodes.length > 0) {
     return task.routeNodes.join(' → ')
   }
@@ -52,14 +54,6 @@ function getRouteText(task) {
   return 'Pending'
 }
 
-function getWaitTime(task) {
-  if (task.status !== 'waiting') return '0s'
-  const now = new Date()
-  const created = new Date(task.createdAt)
-  const diffSeconds = Math.floor((now - created) / 1000)
-  if (diffSeconds <= 0) return 'New'
-  return formatDuration(diffSeconds)
-}
 </script>
 
 <style scoped>

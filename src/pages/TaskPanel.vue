@@ -71,12 +71,12 @@ const store = useAppStore()
 const showGantt = ref(false)
 const showLogs = ref(false)
 const showTaskForm = ref(false)
-const sidebarCollapsed = ref(false)
+const sidebarCollapsed = ref(window.matchMedia('(max-width: 800px)').matches)
 
 const initialFilter = computed(() => route.query.filter || 'all')
 
 function handleCreateTask(task) {
-  store.addTask(task)
+  store.selectTask(task.id)
   showTaskForm.value = false
 }
 </script>
@@ -179,5 +179,10 @@ function handleCreateTask(task) {
 
 .header-btn-primary:hover {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+@media (max-width:800px) {
+  .task-sidebar { top:var(--header-height,145px); width:260px; }
+  .sidebar-toggle { top:calc(var(--header-height,145px) + 8px); left:260px; }
+  .sidebar-toggle--collapsed { left:0; }
 }
 </style>

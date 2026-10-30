@@ -1,198 +1,136 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { tasks as mockTasks, robots as mockRobots, completedTasks, districts, taskLogs as mockLogs } from '../data/mockData'
+import { ref, computed, shallowRef } from 'vue'
+import { api, formatDuration, interpolate } from '../utils/demo.js'
 
 export const useAppStore = defineStore('app', () => {
-  // Current campus
-  const currentDistrict = ref('east')
-  
-  // Task list
-  const tasks = ref([...mockTasks])
-  
-  // Robot list
-  const robots = ref([...mockRobots])
-  
-  // Task logs
-  const taskLogs = ref([...mockLogs])
-  
-  // Selected task ID
+  const snapshot = shallowRef(null)
+  const scene = shallowRef(null)
   const selectedTaskId = ref(null)
-  
-  // Current time
-  const currentTime = ref(new Date())
-  
-  // Statistics
-  const stats = computed(() => {
-    const executing = tasks.value.filter(t => t.status === 'executing').length
-    const waiting = tasks.value.filter(t => t.status === 'waiting').length
-    const completed = completedTasks.length
-    const urgent = tasks.value.filter(t => t.priority === 'urgent').length
-    
-    return {
-      executing,
-      waiting,
-      completed,
-      urgent,
-      total: tasks.value.length + completed,
-      taskPeak: 15,
-      taskPeakTime: '10:30',
-      avgCompletionTime: '5m12s',
-      completionRate: 98,
-      completionTrend: 2,
-      peakRate: 98,
-      peakTime: '10:30',
-      valleyRate: 78,
-      valleyTime: '14:00',
+  const connected = ref(false)
+  const error = ref('')
+  const busy = ref(false)
+  const uiNow = ref(0)
+  const maps = shallowRef([])
+  let receivedAt = 0, sequence = 0, applied = 0, generation = 0, polling = false
+  let timer, uiTimer, scenePromise
+  const retiredSessions = new Set()
+  const sessionId = computed(() => snapshot.value?.sessionId)
+  const clock = computed(() => snapshot.value?.clock || { now: 0, epoch: 0, paused: false, speed: 1 })
+  function now() {
+    const c = clock.value
+    // Never extrapolate a disconnected scene indefinitely.
+    return c.now + (connected.value && !c.paused ? Math.min(1.5, (performance.now() - receivedAt) / 1000) * c.speed : 0)
+  }
+  function apply(data, seq, gen) {
+    if (gen !== generation || seq < applied || retiredSessions.has(data.sessionId)) return false
+    if (sessionId.value && sessionId.value !== data.sessionId) {
+      retiredSessions.add(sessionId.value)
+      selectedTaskId.value = null
     }
-  })
-  
-  // Robot statistics
+    applied = seq
+    snapshot.value = data
+    receivedAt = performance.now()
+    uiNow.value = data.clock.now
+    connected.value = true
+    error.value = ''
+    return true
+  }
+  async function loadScene() {
+    if (!scenePromise) scenePromise = api('scene').then(data => { scene.value = data; return data }).catch(e => { scenePromise = null; throw e })
+    return scenePromise
+  }
+  async function refresh() {
+    if (polling) return
+    polling = true
+    const seq = ++sequence, gen = generation
+    try {
+      const data = await api('state')
+      if (apply(data, seq, gen)) await loadScene()
+    } catch (e) {
+      if (gen === generation && seq >= applied) {
+        const frozen = now()
+        connected.value = false
+        if (snapshot.value) snapshot.value = { ...snapshot.value, clock: { ...clock.value, now: frozen } }
+        uiNow.value = frozen
+        error.value = 'Disconnected — display frozen. Reconnecting…'
+      }
+    } finally { polling = false }
+  }
+  function start() {
+    refresh()
+    timer = setInterval(refresh, 1000)
+    uiTimer = setInterval(() => { uiNow.value = now() }, 100)
+  }
+  function stop() { clearInterval(timer); clearInterval(uiTimer); generation++ }
+  async function control(body, reset = false) {
+    if (busy.value || !connected.value) return
+    busy.value = true
+    const gen = ++generation, seq = ++sequence
+    try {
+      const data = await api(reset ? 'reset' : 'control', { sessionId: sessionId.value, ...body })
+      apply(data, seq, gen)
+      if (reset) selectedTaskId.value = null
+    } catch (e) { error.value = e.message; await refresh() }
+    finally { busy.value = false }
+  }
+  async function addTask(task, requestId, retryTaskId) {
+    if (!connected.value || busy.value) throw new Error('Wait for the demo service to reconnect')
+    const gen = generation
+    const result = await api('tasks', { sessionId: sessionId.value, requestId, name: task.name,
+      startNode: task.routeNodes[0], endNode: task.routeNodes[1], priority: task.priority,
+      taskType: task.taskType, notes: task.notes || '', retryTaskId })
+    if (gen !== generation || result.sessionId !== sessionId.value) throw new Error('Demonstration changed; submit again')
+    selectedTaskId.value = result.task.id
+    // Prevent a poll started before acceptance from replacing this task.
+    applied = ++sequence
+    snapshot.value = { ...snapshot.value, tasks: [result.task, ...snapshot.value.tasks.filter(t => t.id !== result.task.id)] }
+    await refresh()
+    return result.task
+  }
+  async function retryTask(task) {
+    try { await addTask(task, crypto.randomUUID(), task.id) }
+    catch (e) { error.value = e.message }
+  }
+  const tasks = computed(() => (snapshot.value?.tasks || []).map(task => ({ ...task,
+    duration: task.startTime == null ? 0 : Math.max(0, Math.min(uiNow.value, task.finishTime) - task.startTime),
+    waitSeconds: Math.max(0, (task.status === 'waiting' ? uiNow.value : task.startTime ?? task.createdSim) - task.createdSim),
+    remaining: task.finishTime == null ? null : Math.max(0, task.finishTime - uiNow.value),
+  })))
+  const robots = computed(() => snapshot.value?.robots || [])
+  const stats = computed(() => ({ total: 0, executing: 0, waiting: 0, completed: 0, urgent: 0, failed: 0,
+    completionRate: 0, ...snapshot.value?.stats, avgCompletionTime: formatDuration(snapshot.value?.stats.avgCompletionSeconds) }))
   const robotStats = computed(() => {
     const executing = robots.value.filter(r => r.status === 'executing').length
-    const idle = robots.value.filter(r => r.status === 'idle').length
-    const charging = robots.value.filter(r => r.status === 'charging').length
-    const total = robots.value.length
-    const utilization = total > 0 ? Math.round((executing / total) * 100) : 0
-    
-    return {
-      total,
-      executing,
-      idle,
-      charging,
-      utilization,
-      utilizationTrend: 3,
-    }
+    return { total: robots.value.length, executing, idle: robots.value.length - executing, charging: 0,
+      utilization: robots.value.length ? Math.round(executing / robots.value.length * 100) : 0 }
   })
-  
-  // Filter tasks by status
-  const getTasksByFilter = (filter) => {
-    switch (filter) {
-      case 'urgent':
-        return tasks.value.filter(t => t.priority === 'urgent')
-      case 'executing':
-        return tasks.value.filter(t => t.status === 'executing')
-      case 'today':
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        return tasks.value.filter(t => new Date(t.createdAt) >= today)
-      default:
-        return tasks.value
-    }
-  }
-  
-  // Waiting queue
-  const waitingQueue = computed(() => {
+  const taskLogs = computed(() => (snapshot.value?.logs || []).map(log => ({ ...log, time: `+${formatDuration(log.time)}` })))
+  const waitingQueue = computed(() => tasks.value.filter(t => t.status === 'waiting').sort((a, b) =>
+    (a.startTime ?? Infinity) - (b.startTime ?? Infinity) || a.createdSim - b.createdSim))
+  const selectedTask = computed(() => tasks.value.find(t => t.id === selectedTaskId.value))
+  const currentTime = computed(() => new Date((clock.value.epoch + uiNow.value) * 1000))
+  const nodeById = computed(() => Object.fromEntries((scene.value?.nodes || []).map(n => [n.id, n])))
+  function getTasksByFilter(filter) {
+    if (filter === 'urgent') return tasks.value.filter(t => t.priority === 'urgent' && ['waiting', 'executing'].includes(t.status))
+    if (['waiting', 'executing', 'completed', 'failed'].includes(filter)) return tasks.value.filter(t => t.status === filter)
+    if (filter === 'today') return tasks.value.filter(t => new Date(t.createdAt).toDateString() === currentTime.value.toDateString())
     return tasks.value
-      .filter(t => t.status === 'waiting')
-      .sort((a, b) => {
-        // 按优先级排序
-        const priorityOrder = { urgent: 0, normal: 1, low: 2 }
-        return priorityOrder[a.priority] - priorityOrder[b.priority]
-      })
-  })
-  
-  // Select task
-  function selectTask(taskId) {
-    selectedTaskId.value = taskId
   }
-  
-  // Switch campus
-  function setDistrict(districtId) {
-    currentDistrict.value = districtId
+  function robotPosition(robot, time) {
+    const planned = (snapshot.value?.tasks || []).filter(t => t.robotId === robot.id && t.scheduleStage === 'assigned')
+      .sort((a, b) => a.startTime - b.startTime)
+    const started = planned.filter(t => t.startTime <= time)
+    if (started.length) return interpolate(started.at(-1).trajectory, time)
+    return robot.worldPosition
   }
-  
-  // Add new task
-  function addTask(task) {
-    const taskType = task.taskType || 'other'
-    const routeNodes = Array.isArray(task.routeNodes) ? task.routeNodes : []
-    // 随机分配一个机器人（优先空闲，其次任意机器人）
-    let assignedRobot = null
-    if (robots.value.length > 0) {
-      const idleRobots = robots.value.filter(r => r.status === 'idle')
-      const candidates = idleRobots.length > 0 ? idleRobots : robots.value
-      const index = Math.floor(Math.random() * candidates.length)
-      assignedRobot = candidates[index]
-    }
-
-    // 随机生成一个预计耗时（秒），例如 2-10 分钟
-    const estimatedTime = (() => {
-      if (typeof task.estimatedTime === 'number' && task.estimatedTime > 0) {
-        return task.estimatedTime
-      }
-      const minMinutes = 2
-      const maxMinutes = 10
-      const minutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes
-      return minutes * 60
-    })()
-
-    const newTask = {
-      id: `T${String(tasks.value.length + completedTasks.length + 1).padStart(3, '0')}`,
-      ...task,
-      taskType,
-      routeNodes,
-      estimatedTime,
-      // 为新任务绑定机器人，但仍保持 waiting 状态，表示已指派待执行
-      robotId: assignedRobot ? assignedRobot.id : null,
-      status: 'waiting',
-      duration: 0,
-      createdAt: new Date(),
-    }
-
-    tasks.value.unshift(newTask)
-
-    const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-
-    // 记录创建日志
-    taskLogs.value.unshift({
-      time: timeStr,
-      type: 'create',
-      taskId: newTask.id,
-      message: `Created ${task.priority === 'urgent' ? 'urgent ' : ''}task: ${task.name}`,
-    })
-
-    // 如果成功分配了机器人，再记录一次指派日志，方便后续扩展
-    if (assignedRobot) {
-      taskLogs.value.unshift({
-        time: timeStr,
-        type: 'assign',
-        taskId: newTask.id,
-        message: `Task assigned to ${assignedRobot.id}: ${newTask.name}`,
-      })
-    }
-
-    return newTask
+  function robotFloor(robot, time) {
+    const planned = (snapshot.value?.tasks || []).filter(t => t.robotId === robot.id && t.startTime <= time && t.scheduleStage === 'assigned').sort((a,b) => a.startTime-b.startTime)
+    const visit = planned.at(-1)?.timetable.filter(row => row.arrival <= time).at(-1)
+    return visit ? nodeById.value[visit.nodeId].floor : parseFloat(robot.position.floor)
   }
-  
-  // Update time
-  function updateTime() {
-    currentTime.value = new Date()
-  }
-  
-  // Map data
-  const maps = ref([])
-  
-  // Set map data
-  function setMaps(mapData) {
-    maps.value = mapData
-  }
-  
-  return {
-    currentDistrict,
-    tasks,
-    robots,
-    taskLogs,
-    selectedTaskId,
-    currentTime,
-    stats,
-    robotStats,
-    waitingQueue,
-    districts,
-    maps,
-    getTasksByFilter,
-    selectTask,
-    setDistrict,
-    addTask,
-    updateTime,
-    setMaps,
-  }
+  function selectTask(id) { selectedTaskId.value = id }
+  function setMaps(data) { maps.value = data }
+  return { scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
+    selectedTaskId, selectedTask, currentTime, nodeById, maps, connected, busy, error,
+    loadScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, now }
 })

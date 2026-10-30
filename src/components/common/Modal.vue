@@ -84,6 +84,7 @@ function close() {
   border-radius: 16px;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
   max-height: 90vh;
+  max-width:calc(100vw - 24px);
   overflow: auto;
 }
 

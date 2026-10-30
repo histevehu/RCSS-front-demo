@@ -1,35 +1,30 @@
 <template>
-  <header class="header">
+  <header ref="headerElement" class="header">
     <div class="header-inner">
       <div class="header-left">
         <h1 class="header-title">{{ title }}</h1>
-        <div class="header-divider"></div>
-        <div class="district-select">
-          <select v-model="selectedDistrict">
-            <option v-for="district in districts" :key="district.id" :value="district.id">
-              {{ district.name }}
-            </option>
-          </select>
-          <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
+        <span class="demo-mode">Live Scheduling · Simulated Execution</span>
       </div>
 
       <div class="header-right">
         <div class="status-indicator">
           <span class="status-dot"></span>
-          <span class="status-text">Online</span>
+          <span class="status-text">{{ store.connected ? (store.clock.paused ? 'Paused' : 'Connected') : 'Disconnected' }}</span>
         </div>
         <div class="header-time">{{ currentTimeStr }}</div>
+        <button :disabled="!store.connected || store.busy" @click="store.control({ paused: !store.clock.paused })">{{ store.clock.paused ? 'Resume' : 'Pause' }}</button>
+        <select aria-label="Demo speed" :value="store.clock.speed" :disabled="!store.connected || store.busy" @change="store.control({ speed: Number($event.target.value) })"><option v-for="speed in [1,2,5,10]" :key="speed" :value="speed">{{ speed }}×</option></select>
+        <button :disabled="!store.connected || store.busy" @click="store.control({}, true)">Reset Demo</button>
+        <router-link :to="$route.path === '/' ? '/tasks' : '/'">{{ $route.path === '/' ? 'Task Panel' : 'Dashboard' }}</router-link>
         <slot name="actions"></slot>
       </div>
     </div>
+    <div v-if="store.error" class="demo-error" role="alert">{{ store.error }}</div>
   </header>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../../stores/appStore'
 
 defineProps({
@@ -39,21 +34,25 @@ defineProps({
   }
 })
 
+const headerElement = ref(null)
+let observer
+onMounted(() => {
+  observer = new ResizeObserver(() => document.documentElement.style.setProperty('--header-height', `${headerElement.value.offsetHeight}px`))
+  observer.observe(headerElement.value)
+})
+onUnmounted(() => observer?.disconnect())
 const store = useAppStore()
-const districts = store.districts
-
-const selectedDistrict = computed({
-  get: () => store.currentDistrict,
-  set: (val) => store.setDistrict(val)
-})
-
-const currentTimeStr = computed(() => {
-  const now = store.currentTime
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-})
+const currentTimeStr = computed(() => store.currentTime.toLocaleTimeString('en-GB', {timeZone:'Asia/Shanghai'}))
 </script>
 
 <style scoped>
+.demo-mode { color:#7dd3fc; font-size:11px; }
+.header-right button,.header-right select,.header-right a { color:#e2e8f0; background:#1e293b; border:1px solid #334155; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:12px; text-decoration:none; }
+.header-right button:disabled { opacity:.4; cursor:default; }
+.demo-error { position:absolute; top:100%; left:50%; transform:translateX(-50%); background:#7f1d1d; color:#fee2e2; padding:7px 20px; border-radius:0 0 8px 8px; font-size:12px; }
+@media(max-width:1200px) { .demo-mode,.header-time { display:none; } .header-right { gap:6px !important; } }
+@media(max-width:800px) { .header-inner { height:auto !important; min-height:90px; flex-wrap:wrap; gap:5px; padding:8px !important; } .header-right { flex-wrap:wrap; } }
+
 .header {
   position: absolute;
   top: 0;

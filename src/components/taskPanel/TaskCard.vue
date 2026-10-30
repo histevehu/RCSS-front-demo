@@ -28,6 +28,12 @@
           <span class="detail-label">Duration:</span>
           <span class="detail-value">{{ durationText }} / Est. {{ estimatedText }}</span>
         </div>
+        <div v-if="task.scheduleStage === 'assigned'" class="detail-row">
+          <span class="detail-label">Finish:</span><span class="detail-value">{{ finishText }} · {{ formatDuration(task.remaining) }} left</span>
+        </div>
+        <div v-if="task.status === 'waiting' || task.status === 'failed'" class="detail-row"><span class="detail-value">{{ task.reasonCode }} {{ task.reason }}</span></div>
+        <progress v-if="task.scheduleStage === 'assigned'" :value="task.duration" :max="task.estimatedTime || 1" style="width:100%;height:6px;accent-color:#38bdf8"></progress>
+        <button v-if="task.status === 'failed'" :disabled="!store.connected" @click.stop="store.retryTask(task)" style="color:#7dd3fc">Retry task</button>
         <div class="detail-row route-row">
           <span class="route-icon">📍</span>
           <span class="detail-label">Route:</span>
@@ -39,9 +45,11 @@
 </template>
 
 <script setup>
+import { useAppStore } from '../../stores/appStore'
 import { computed } from 'vue'
-import { formatDuration, getPriorityText, getStatusText } from '../../data/mockData'
+import { formatDuration, getPriorityText, getStatusText } from '../../utils/demo'
 
+const store = useAppStore()
 const props = defineProps({
   task: { type: Object, required: true },
   isSelected: { type: Boolean, default: false }
@@ -75,9 +83,11 @@ const taskTypeText = computed(() => {
   }
   return map[props.task.taskType] || props.task.taskType || 'N/A'
 })
+const finishText = computed(() => new Date((store.clock.epoch + props.task.finishTime) * 1000).toLocaleTimeString('en-GB', { timeZone:'Asia/Shanghai' }))
 const routeText = computed(() => {
+  if (props.task.path?.length) return props.task.path.map(n => store.nodeById[n]?.label || n).join(' → ')
+  if (props.task.route?.length) return props.task.route.join(' → ')
   if (props.task.routeNodes?.length > 0) return props.task.routeNodes.join('→')
-  if (props.task.route?.length > 0) return props.task.route.join('→')
   return 'Pending'
 })
 </script>

@@ -122,7 +122,7 @@ function handleNavigate(filter) {
 }
 
 function handleCreateTask(task) {
-  store.addTask(task)
+  store.selectTask(task.id)
   showTaskForm.value = false
 }
 </script>
@@ -436,5 +436,16 @@ function handleCreateTask(task) {
 
 .fab-button:active {
   transform: translateY(0);
+}
+@media (max-width: 800px) {
+  .dashboard { overflow-y:auto; padding-top:var(--header-height,110px); }
+  .dashboard-map { position:relative; inset:auto; height:430px; width:100%; }
+  .dashboard-left,.dashboard-right { position:relative; inset:auto; width:auto; margin:12px; overflow:visible; }
+  .dashboard-bottom { position:relative; inset:auto; margin:12px; padding-bottom:70px; }
+  .queue-panel { min-height:220px; }
+  .fab-button { position:fixed; bottom:16px; right:16px; }
+  .urgent-alert { position:relative; inset:auto; margin:12px; }
+  :deep(.map-tools) { top:12px; left:12px; flex-wrap:wrap; }
+  :deep(.assignment-panel) { top:62px; left:12px; }
 }
 </style>

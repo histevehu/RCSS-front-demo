@@ -29,13 +29,20 @@
 </template>
 
 <script setup>
-import { hotspots } from '../../data/mockData'
-
-const buildings = [
-  { id: 'A', name: 'Building A', taskCount: 8 },
-  { id: 'B', name: 'Building B', taskCount: 6 },
-  { id: 'C', name: 'Building C', taskCount: 4 }
-]
+import { computed } from 'vue'
+import { useAppStore } from '../../stores/appStore'
+const store = useAppStore()
+const buildings = computed(() => (store.scene?.maps || []).filter(m => m.mapType !== 'stair').map((m, index) => ({
+  id: ['A','B','C'][index], name: m.mapName, taskCount: store.tasks.filter(t => store.nodeById[t.routeNodes.at(-1)]?.mapName === m.mapName).length
+})))
+const hotspots = computed(() => {
+  const counts = new Map()
+  for (const t of store.tasks) {
+    const location = store.nodeById[t.routeNodes.at(-1)]?.label
+    if (location) counts.set(location, (counts.get(location) || 0) + 1)
+  }
+  return [...counts].map(([location, taskCount]) => ({ location,taskCount })).sort((a,b) => b.taskCount-a.taskCount)
+})
 
 function getBuildingClass(id) {
   return `building-${id.toLowerCase()}`

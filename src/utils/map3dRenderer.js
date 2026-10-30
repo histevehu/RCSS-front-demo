@@ -76,7 +76,8 @@ export class Map3DRenderer {
     this.animate()
 
     // 窗口大小变化处理
-    window.addEventListener('resize', () => this.onResize())
+    this.resizeHandler = () => this.onResize()
+    window.addEventListener('resize', this.resizeHandler)
   }
 
   /**
@@ -108,6 +109,7 @@ export class Map3DRenderer {
    */
   animate() {
     this.animationId = requestAnimationFrame(() => this.animate())
+    this.onFrame?.()
     this.controls.update()
     this.renderer.render(this.scene, this.camera)
   }
@@ -837,6 +839,8 @@ export class Map3DRenderer {
    * 销毁渲染器
    */
   dispose() {
+    window.removeEventListener('resize', this.resizeHandler)
+    this.onFrame = null
     if (this.animationId) {
       cancelAnimationFrame(this.animationId)
     }

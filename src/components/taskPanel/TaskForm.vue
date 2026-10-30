@@ -50,15 +50,16 @@
       <textarea v-model="form.notes" rows="2" placeholder="Optional" class="form-textarea"></textarea>
     </div>
 
+    <p v-if="submitError" role="alert" style="color:#fca5a5">{{ submitError }}</p>
     <div class="form-actions">
-      <button type="submit" class="btn-primary">Create Task</button>
-      <button type="button" @click="$emit('cancel')" class="btn-secondary">Cancel</button>
+      <button type="submit" class="btn-primary" :disabled="submitting || !store.connected || !locationOptions.length">{{ submitting ? 'Submitting…' : 'Create Task' }}</button>
+      <button type="button" :disabled="submitting" @click="$emit('cancel')" class="btn-secondary">Cancel</button>
     </div>
   </form>
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import { useAppStore } from '../../stores/appStore'
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -87,80 +88,22 @@ const taskTypes = [
   { value: 'other', label: 'Other' },
 ]
 
-const fallbackLocations = [
-  'Building A 1F Pharmacy',
-  'Building A 2F Emergency',
-  'Building A 3F Ward',
-  'Building A 4F Operating Room',
-  'Building B 1F Laboratory',
-  'Building B 2F Outpatient',
-  'Building B 3F Ward',
-  'Building B 4F Office',
-  'Building C 1F Infusion Center',
-  'Building C 2F Clinic',
-  'Building C 3F Ward',
-  'Building C 4F Rehabilitation',
-]
-
-const locationOptions = computed(() => {
-  if (!store.maps || store.maps.length === 0) {
-    return fallbackLocations.map(loc => ({
-      value: loc,
-      label: loc,
-      plain: loc,
-    }))
-  }
-
-  const options = []
-  store.maps.forEach(map => {
-    const isStair = map.mapType === 'stair' || String(map.mapName).toLowerCase().includes('stair')
-    if (isStair) return
-    map.waypoints?.forEach(wp => {
-      const baseName = wp.name || wp.code
-      const mapLabel = map.displayName || map.mapName
-      options.push({
-        value: `${map.mapName}:${wp.code}`,
-        label: `${baseName} (${mapLabel})`,
-        plain: baseName,
-      })
-    })
-  })
-
-  return options
-})
-
-const plainLocationByValue = computed(() => {
-  const map = new Map()
-  locationOptions.value.forEach(opt => map.set(opt.value, opt.plain))
-  return map
-})
-
-function getPlainLocation(value) {
-  return plainLocationByValue.value.get(value) || value
-}
-
-function handleSubmit() {
-  if (!form.name || !form.startLocation || !form.endLocation || !form.taskType) return
-  
-  const startDisplay = getPlainLocation(form.startLocation)
-  const endDisplay = getPlainLocation(form.endLocation)
-
-  emit('submit', {
-    name: form.name,
-    priority: form.priority,
-    taskType: form.taskType,
-    route: [startDisplay, endDisplay],
-    routeNodes: [form.startLocation, form.endLocation],
-    notes: form.notes,
-  })
-  
-  // 重置表单
-  form.name = ''
-  form.priority = 'normal'
-  form.startLocation = ''
-  form.endLocation = ''
-  form.taskType = 'delivery'
-  form.notes = ''
+const locationOptions = computed(() => (store.scene?.nodes || []).filter(n => n.selectable).map(n => ({ value:n.id, label:n.label })))
+const submitting = ref(false)
+const submitError = ref('')
+let pendingPayload, pendingRequest
+async function handleSubmit() {
+  if (submitting.value || !form.name.trim() || !form.startLocation || !form.endLocation) return
+  submitting.value = true; submitError.value = ''
+  const task = { name: form.name, priority: form.priority, taskType: form.taskType,
+    routeNodes: [form.startLocation, form.endLocation], notes: form.notes }
+  const serialized = JSON.stringify({ ...task, session:store.sessionId })
+  if (serialized !== pendingPayload) { pendingPayload = serialized; pendingRequest = crypto.randomUUID() }
+  try {
+    const created = await store.addTask(task, pendingRequest)
+    emit('submit', created)
+  } catch (e) { submitError.value = e.message }
+  finally { submitting.value = false }
 }
 </script>
 

@@ -62,11 +62,11 @@ function getLogTypeClass(type) {
 }
 
 .dot-create { background: #3b82f6; }
-.dot-start { background: #10b981; }
-.dot-complete { background: #059669; }
+.dot-start,.dot-executing { background: #10b981; }
+.dot-completed { background: #059669; }
 .dot-assign { background: #f59e0b; }
 .dot-conflict { background: #ef4444; }
-.dot-error { background: #dc2626; }
+.dot-failed { background: #dc2626; }
 
 .log-content {
   flex: 1;
