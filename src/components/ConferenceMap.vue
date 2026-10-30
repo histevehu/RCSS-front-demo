@@ -34,11 +34,14 @@ import { parsePGM, pixelsToCanvas } from '../utils/pgmParser'
 import { useUiStore } from '../stores/uiStore'
 import { waypointColor, findMapTarget, tooltipPosition } from '../utils/mapInteraction.js'
 import { mapThemes } from '../utils/mapTheme.js'
+import { MapClickGesture, isPointNearRoute } from '../utils/mapSelection.js'
 const store = useAppStore(), ui = useUiStore()
 const container = ref(null), loading = ref(true), failure = ref(''), floor = ref('all')
 const showRobots = ref(true), showRoute = ref(true)
 const floors = computed(() => [...new Set(store.locations.filter(location => location.selectable).map(location => location.floor))].sort((a,b) => a-b))
 let renderer, dead = false, routeGroup, routeKey = '', meshSession
+let routeSegments = []
+const clickGesture = new MapClickGesture()
 const meshes = new Map()
 const hover = ref(null)
 const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2()
@@ -70,10 +73,25 @@ const tooltip = computed(() => {
 })
 function clearHover() { pointerPosition = null; hover.value = null }
 function pointerMove(event) {
+  clickGesture.move(event)
   if (event.buttons) { clearHover(); return }
   const rect = container.value.getBoundingClientRect()
   pointerPosition = { x:event.clientX - rect.left, y:event.clientY - rect.top }
   pickTarget()
+}
+function pointerDown(event) { clickGesture.down(event); clearHover() }
+function pointerCancel() { clickGesture.cancel() }
+function pointerUp(event) {
+  if (!clickGesture.up(event) || !store.selectedTask) return
+  const rect = container.value.getBoundingClientRect()
+  const point = { x:event.clientX - rect.left, y:event.clientY - rect.top }
+  if (point.x < 0 || point.y < 0 || point.x > rect.width || point.y > rect.height) return
+  const segments = routeSegments.flatMap(([a,b]) => {
+    const from=a.clone().project(renderer.camera), to=b.clone().project(renderer.camera)
+    if ((from.z < -1 && to.z < -1) || (from.z > 1 && to.z > 1)) return []
+    return [[{x:(from.x+1)*rect.width/2,y:(1-from.y)*rect.height/2}, {x:(to.x+1)*rect.width/2,y:(1-to.y)*rect.height/2}]]
+  })
+  if (!isPointNearRoute(point, segments)) { store.selectTask(null); clearHover() }
 }
 function pickTarget() {
   if (!renderer || !pointerPosition) return
@@ -123,27 +141,29 @@ async function initialize() {
     const canvas = renderer.renderer.domElement
     canvas.addEventListener('pointermove', pointerMove)
     canvas.addEventListener('pointerleave', clearHover)
-    canvas.addEventListener('pointerdown', clearHover)
+    canvas.addEventListener('pointerdown', pointerDown)
+    canvas.addEventListener('pointerup', pointerUp)
+    canvas.addEventListener('pointercancel', pointerCancel)
     renderer.controls.addEventListener('change', clearHover)
     loading.value = false
   } catch (e) { failure.value = 'The map could not be loaded. Please retry.'; loading.value = false }
 }
 function drawRobotLabel(canvas, id) {
   const ctx=canvas.getContext('2d'), light=ui.preferences.theme==='light'
-  ctx.clearRect(0,0,128,64); ctx.fillStyle=light ? '#ffffff':'#142135'; ctx.fillRect(0,0,128,64)
+  ctx.clearRect(0,0,128,64); ctx.fillStyle=light ? '#ffffff99':'#14213599'; ctx.fillRect(0,0,128,64)
   ctx.fillStyle=light ? '#172b41':'#e0eaf4'; ctx.font='bold 32px Arial'; ctx.textAlign='center'; ctx.fillText(id,64,43)
 }
 function makeRobot(id) {
   const mesh = new THREE.Group()
   const color=mapThemes[ui.preferences.theme].robot
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .8, 16), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .3 }))
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .8, 16), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .3, transparent:true, opacity:.65, depthWrite:false }))
   body.userData.themeRole='robot'
   mesh.add(body)
-  const front = new THREE.Mesh(new THREE.ConeGeometry(.23, .6, 3), new THREE.MeshBasicMaterial({ color: 0xffffff }))
+  const front = new THREE.Mesh(new THREE.ConeGeometry(.23, .6, 3), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent:true, opacity:.7, depthWrite:false }))
   front.rotation.x = Math.PI / 2; front.position.z = .5; mesh.add(front)
   const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 64
   drawRobotLabel(canvas, id)
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), depthTest: false }))
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), depthTest: false, depthWrite:false }))
   label.name='robot-label'; label.scale.set(2, 1, 1); label.position.y = 1.4; mesh.add(label)
   mesh.userData.robotId = id
   renderer.scene.add(mesh)
@@ -172,6 +192,7 @@ function updateFrame() {
     routeKey = key
     if (routeGroup) disposeObject(routeGroup)
     routeGroup = null
+    routeSegments = []
     if (showRoute.value && task?.path?.length) {
       routeGroup = new THREE.Group()
       const path = task.path.filter(id => store.nodeById[id])
@@ -181,11 +202,15 @@ function updateFrame() {
         if (!visible(i-1) || !visible(i)) continue
         const delta=points[i].clone().sub(points[i-1])
         if (delta.length() < 1e-6) continue
-        const segment=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,delta.length(),8),new THREE.MeshBasicMaterial({color:mapThemes[ui.preferences.theme].route,depthTest:false}))
+        routeSegments.push([points[i-1],points[i]])
+        const segment=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,delta.length(),8),new THREE.MeshBasicMaterial({color:mapThemes[ui.preferences.theme].route,depthTest:false,depthWrite:false}))
         segment.userData.themeRole='route'
         segment.position.copy(points[i-1]).addScaledVector(delta,.5)
         segment.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize())
         segment.renderOrder=1000; routeGroup.add(segment)
+        const glow=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,delta.length(),8),new THREE.MeshBasicMaterial({color:mapThemes[ui.preferences.theme].route,transparent:true,opacity:.25,depthTest:false,depthWrite:false}))
+        glow.userData.themeRole='route'; glow.position.copy(segment.position); glow.quaternion.copy(segment.quaternion)
+        glow.renderOrder=999; routeGroup.add(glow)
       }
       for (const [i, index] of [0, points.length-1].entries()) {
         if (index < 0 || !visible(index)) continue
@@ -194,6 +219,7 @@ function updateFrame() {
         const marker = new THREE.Mesh(new THREE.SphereGeometry(.4, 12, 12), new THREE.MeshBasicMaterial({ color:mapThemes[ui.preferences.theme][role], depthTest: false }))
         marker.userData.themeRole=role
         marker.position.copy(point); marker.renderOrder = 1001; routeGroup.add(marker)
+        routeSegments.push([point, point])
       }
       renderer.scene.add(routeGroup)
     }
@@ -223,7 +249,9 @@ onUnmounted(() => {
     const canvas = renderer.renderer.domElement
     canvas.removeEventListener('pointermove', pointerMove)
     canvas.removeEventListener('pointerleave', clearHover)
-    canvas.removeEventListener('pointerdown', clearHover)
+    canvas.removeEventListener('pointerdown', pointerDown)
+    canvas.removeEventListener('pointerup', pointerUp)
+    canvas.removeEventListener('pointercancel', pointerCancel)
     renderer.controls.removeEventListener('change', clearHover)
   }
   meshes.forEach(disposeObject)

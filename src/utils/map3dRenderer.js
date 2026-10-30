@@ -619,6 +619,9 @@ export class Map3DRenderer {
       color,
       emissive: color,
       emissiveIntensity: 0.4,
+      transparent: true,
+      opacity: 0.65,
+      depthWrite: false,
       metalness: 0.6,
       roughness: 0.3
     })
@@ -634,6 +637,9 @@ export class Map3DRenderer {
       color,
       emissive: color,
       emissiveIntensity: 0.8,
+      transparent: true,
+      opacity: 0.65,
+      depthWrite: false,
       metalness: 0.8,
       roughness: 0.1
     })

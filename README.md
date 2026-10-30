@@ -55,7 +55,7 @@ Orders, robot positions, routes and hover details use **Floor · Point**, such a
 
 The staircase between floors is shown as `Stairs 4F–5F`, with internal waypoints S1–S5. It is not an extra floor or an order destination. **All Floors** includes the stairway; a single-floor view shows that floor and its landing.
 
-The legend uses green navigation points, purple stair waypoints, yellow robots and cyan selected routes. Hover for the location, adjacent places, robot state, current task, remaining time and physical position in metres. Hidden objects cannot trigger a tooltip. The visual height exaggeration does not change reported physical coordinates.
+The legend uses green navigation points, purple stair waypoints, yellow robots and bright yellow selected routes. Hover for the location, adjacent places, robot state, current task, remaining time and physical position in metres. Hidden objects cannot trigger a tooltip. The visual height exaggeration does not change reported physical coordinates.
 
 Internal map/node identifiers remain in API data for planning and resource loading. The public `locations` catalogue and `nodeLocations` mapping supply the names displayed in the UI. The frontend never falls back to showing raw identifiers for an unknown location.
 
@@ -76,3 +76,5 @@ Language, theme, card folds and desktop rail visibility are remembered locally i
 ### Map camera controls
 
 Drag to orbit, right-drag to pan freely along a horizontal plane, and scroll to zoom around the mouse pointer (pinch around the fingers on touch screens). Panning and cursor zoom do not pull the view back towards the scene centre. Orbit elevation stays between 25° and 75° above the map. Zoom distance limits scale with the visible map bounds, keeping the camera above the highest visible floor. Switching floors updates these limits without resetting the viewing direction. Reset View restores the overview and clears remaining drag inertia so the camera stops drifting.
+
+Robots and navigation markers use translucent materials so overlapping objects are easier to distinguish. Selected algorithm routes are highlighted in yellow with a soft outline in both themes. Click/tap the map away from the highlighted route to deselect its task; route clicks, camera drags, right-drag panning and multi-touch gestures retain the selection. Sidebar and toolbar controls do not deselect tasks.
