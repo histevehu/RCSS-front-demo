@@ -43,17 +43,7 @@ function getPriorityClass(priority) {
   return classes[priority] || 'priority-normal'
 }
 
-function getRouteText(task) {
-  if (task.route?.length) return task.route.join(' → ')
-  if (Array.isArray(task.routeNodes) && task.routeNodes.length > 0) {
-    return task.routeNodes.join(' → ')
-  }
-  if (Array.isArray(task.route) && task.route.length > 0) {
-    return task.route.join(' → ')
-  }
-  return 'Pending'
-}
-
+function getRouteText(task) { return store.formatRoute(task.routeNodes) }
 </script>
 
 <style scoped>

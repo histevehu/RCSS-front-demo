@@ -15,7 +15,8 @@ const SAMPLE_RATE = 1 // 像素采样率（每 N 个像素采样一次）
  * 3D 渲染器类
  */
 export class Map3DRenderer {
-  constructor(container) {
+  constructor(container, { showCrossMapLinks = true } = {}) {
+    this.showCrossMapLinks = showCrossMapLinks
     this.container = container
     this.scene = null
     this.camera = null
@@ -184,7 +185,7 @@ export class Map3DRenderer {
     }
 
     // 渲染跨地图连线
-    this.renderCrossMapLinks()
+    if (this.showCrossMapLinks) this.renderCrossMapLinks()
 
     // 自动调整相机
     this.fitCamera()
@@ -532,6 +533,7 @@ export class Map3DRenderer {
     wpGroup.name = 'waypoints'
 
     for (const wp of map.waypoints) {
+      if (wp.renderMarker === false) continue
       const marker = this.createWaypointMarker(wp)
       marker.userData = {
         isWaypoint: true,

@@ -84,12 +84,8 @@ const taskTypeText = computed(() => {
   return map[props.task.taskType] || props.task.taskType || 'N/A'
 })
 const finishText = computed(() => new Date((store.clock.epoch + props.task.finishTime) * 1000).toLocaleTimeString('en-GB', { timeZone:'Asia/Shanghai' }))
-const routeText = computed(() => {
-  if (props.task.path?.length) return props.task.path.map(n => store.nodeById[n]?.label || n).join(' → ')
-  if (props.task.route?.length) return props.task.route.join(' → ')
-  if (props.task.routeNodes?.length > 0) return props.task.routeNodes.join('→')
-  return 'Pending'
-})
+const routeText = computed(() => store.formatRoute(props.task.path?.length ? props.task.path : props.task.routeNodes))
+
 </script>
 
 <style scoped>

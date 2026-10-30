@@ -22,14 +22,14 @@ Open <http://127.0.0.1:3000>. Vite forwards `/api` to `http://127.0.0.1:8001`. T
 ## Repeatable presentation
 
 1. Click **Reset Demo**. The scene starts with eight idle robots and no historical tasks.
-2. Click **New Task**, name the delivery and choose `zone_1 · p1` → `zone_2 · p3`. Submit.
+2. Click **New Task**, name the delivery and choose `4F · P1` → `5F · P3`. Submit.
 3. The selected order shows its assigned robot, execution duration, planned start/finish, full algorithm route and remaining time. The route includes the staircase between floors.
 4. Pause to explain the assignment; robot motion, progress and waiting counters stop together. Resume and switch to **5×** or **10×** to finish within the presentation.
 5. Use **Task Panel** to show task filters, **Task Timeline (Gantt)** and **Task Logs**. Submit orders repeatedly to demonstrate queued work. Waiting orders display their reason, elapsed wait and expected start; they leave the queue when execution begins.
 6. Return to **Dashboard** to show completion count, completion rate, average completion time and robot utilization changing with the same orders. Completed robots remain at their destinations.
 7. Reset to repeat. Refreshing the browser restores the current backend session; restarting the backend creates a new empty session.
 
-The time shown is the simulation's clock in Asia/Shanghai. Remaining time is in simulated seconds; at 10×, ten simulated seconds take one real second. Average completion includes queue time. Completion rate is completed orders divided by all accepted orders, including failed orders. Utilization is the current fraction of executing robots. Distribution counts accepted orders by destination map/node.
+The time shown is the simulation's clock in Asia/Shanghai. Remaining time is in simulated seconds; at 10×, ten simulated seconds take one real second. Average completion includes queue time. Completion rate is completed orders divided by all accepted orders, including failed orders. Utilization is the current fraction of executing robots. Task metrics and the waiting queue are grouped on the left; robots and their current utilization are on the right.
 
 ## Failure and recovery
 
@@ -37,8 +37,8 @@ The time shown is the simulation's clock in Asia/Shanghai. Remaining time is in 
 - The form retains inputs and a request ID after a transport failure; retrying an unchanged order does not create another task.
 - On disconnection the displayed clock/motion freeze and a reconnect notice appears. After reconnection the UI adopts the backend's authoritative state.
 - Reset invalidates older requests and responses. One backend process maintains one shared demonstration for all connected browser tabs; it is not a multi-user production task service.
-- The packaged scene contains one stale portal (`zone_1:p1` → nonexistent `zone_3:p6`), reported in `/demo/scene.warnings` and ignored. Its valid `zone_3:p5` connection remains. No elevator links are invented.
-- Movement follows the scheduler's topology and timetable, including pickup/delivery holds; it does not demonstrate physical navigation or collision safety on real robots. Unsupported conflict-efficiency and elevator metrics show `—`.
+- Scene diagnostics remain in `/demo/scene.warnings` for operators. They are not shown to end users.
+- Movement follows the scheduler's topology and timetable, including pickup/delivery holds; it does not demonstrate physical navigation or collision safety on real robots. Uncollected conflict-efficiency and elevator metrics are omitted from the dashboard.
 
 ## Verification
 
@@ -49,10 +49,12 @@ npm run build
 
 Backend regressions and API tests are documented in its `demo/README.md`. The `public/maps` assets use the same sequential zone names as the backend; the running demo loads its versioned scene and map assets exclusively from the backend.
 
-## Reading the map
+## Reading locations
 
-Robot positions use **Floor · Map ID · Node**. `4F · zone_1 · p1` means node `p1` in map `zone_1` on floor 4. While travelling, the list shows the departure and arrival nodes (`p1 → p7`), rather than implying the robot remains at its last visited node. Each map has its own node numbers; `zone_1:p1` and `zone_2:p1` are different nodes.
+Orders, robot positions, routes and hover details use **Floor · Point**, such as `4F · P1`. Each floor has its own continuous numbering: 4F has P1–P11 and 5F has P1–P5. Start and End options are grouped by floor and sorted numerically. One physical location appears only once, including shared connection points. Moving robots show the points they are travelling between.
 
-The `zone_1`, `zone_2` and `zone_3` strings are sequential map IDs, not floor numbers: `zone_1` and `zone_3` belong to 4F; `zone_2` belongs to 5F. `stairs_1` is the staircase between them, represented as 4.5F. Zone numbering follows the scene loading order; floor membership is specified separately.
+The staircase between floors is shown as `Stairs 4F–5F`, with internal waypoints S1–S5. It is not an extra floor or an order destination. **All Floors** includes the stairway; a single-floor view shows that floor and its landing.
 
-Both map views include a collapsible legend: green markers are navigation nodes, purple markers are valid map connections, yellow bodies are robots, and the cyan line is the selected task route with start/end markers. These colours describe the demonstration's topology; raw numeric node types do not imply an elevator or a task endpoint. Hover over a marker or robot for its floor, map, node/route, task and position. Position coordinates are physical metres before the visual 3× height exaggeration. Hidden floors/robots cannot trigger tooltips.
+The legend uses green navigation points, purple stair waypoints, yellow robots and cyan selected routes. Hover for the location, adjacent places, robot state, current task, remaining time and physical position in metres. Hidden objects cannot trigger a tooltip. The visual height exaggeration does not change reported physical coordinates.
+
+Internal map/node identifiers remain in API data for planning and resource loading. The public `locations` catalogue and `nodeLocations` mapping supply the names displayed in the UI. The frontend never falls back to showing raw identifiers for an unknown location.

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
 import { api, formatDuration, interpolate } from '../utils/demo.js'
 import { describeRobotLocation } from '../utils/mapInteraction.js'
+import { locationLabel, routeLabels } from '../utils/locations.js'
 
 export const useAppStore = defineStore('app', () => {
   const snapshot = shallowRef(null)
@@ -111,6 +112,10 @@ export const useAppStore = defineStore('app', () => {
   const selectedTask = computed(() => tasks.value.find(t => t.id === selectedTaskId.value))
   const currentTime = computed(() => new Date((clock.value.epoch + uiNow.value) * 1000))
   const nodeById = computed(() => Object.fromEntries((scene.value?.nodes || []).map(n => [n.id, n])))
+  const locations = computed(() => scene.value?.locations || [])
+  const locationById = computed(() => Object.fromEntries(locations.value.map(location => [location.id, location])))
+  function formatLocation(id) { return locationLabel(nodeById.value, id) }
+  function formatRoute(path) { return routeLabels(path, nodeById.value).join(' → ') || 'Pending' }
   function getTasksByFilter(filter) {
     if (filter === 'urgent') return tasks.value.filter(t => t.priority === 'urgent' && ['waiting', 'executing'].includes(t.status))
     if (['waiting', 'executing', 'completed', 'failed'].includes(filter)) return tasks.value.filter(t => t.status === filter)
@@ -132,6 +137,6 @@ export const useAppStore = defineStore('app', () => {
   function selectTask(id) { selectedTaskId.value = id }
   function setMaps(data) { maps.value = data }
   return { scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
-    selectedTaskId, selectedTask, currentTime, nodeById, maps, connected, busy, error,
+    selectedTaskId, selectedTask, currentTime, nodeById, locations, locationById, formatLocation, formatRoute, maps, connected, busy, error,
     loadScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
 })

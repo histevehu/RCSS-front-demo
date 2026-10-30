@@ -76,21 +76,22 @@ test('accepted task survives earlier in-flight poll and is selected', async () =
 
 test('robot location distinguishes service holds, movement, cross-map travel and completion', async () => {
   const {describeRobotLocation}=await import('../src/utils/mapInteraction.js')
-  const nodes={a:{id:'a',code:'mapA:p1',mapName:'mapA',floor:4},b:{id:'b',code:'mapB:p1',mapName:'mapB',floor:5}}
+  const nodes={a:{id:'a',locationId:'4F:P1',displayCode:'P1',floorLabel:'4F',displayFloor:4},
+    b:{id:'b',locationId:'5F:P1',displayCode:'P1',floorLabel:'5F',displayFloor:5}}
   const robot={id:'R1',position:{floor:'4F',building:'mapA'}}
   const tasks=[{id:'T1',robotId:'R1',scheduleStage:'assigned',startTime:0,finishTime:20,
     timetable:[{nodeId:'a',arrival:0,depart:5},{nodeId:'b',arrival:15,depart:20}]}]
-  assert.equal(describeRobotLocation(robot,tasks,nodes,3,'a').nodeText,'p1')
+  assert.equal(describeRobotLocation(robot,tasks,nodes,3,'a').nodeText,'P1')
   const moving=describeRobotLocation(robot,tasks,nodes,10,'a')
   assert.equal(moving.inTransit,true)
-  assert.equal(moving.nodeText,'p1 → mapB · p1')
+  assert.equal(moving.nodeText,'4F · P1 → 5F · P1')
   assert.equal(moving.floor,4)
   const finished=describeRobotLocation(robot,tasks,nodes,21,'a')
   assert.equal(finished.floor,5)
-  assert.equal(finished.mapName,'mapB')
+  assert.equal(finished.label,'5F · P1')
   assert.equal(finished.taskId,null)
   assert.equal(finished.inTransit,false)
-  assert.equal(describeRobotLocation(robot,[],nodes,0,'a').nodeText,'p1')
+  assert.equal(describeRobotLocation(robot,[],nodes,0,'a').nodeText,'P1')
 })
 
 test('hover picking resolves mesh parents and ignores hidden floors or robots', async () => {
@@ -109,13 +110,14 @@ test('hover picking resolves mesh parents and ignores hidden floors or robots', 
   assert.equal(findMapTarget(body),null)
 })
 
-test('tooltip stays inside the canvas and portal colour matches the legend', async () => {
+test('tooltip stays inside the canvas and stair colour matches the legend', async () => {
   const {tooltipPosition,waypointColor,NAVIGATION_COLOR,CONNECTION_COLOR}=await import('../src/utils/mapInteraction.js')
   const pos=tooltipPosition(790,590,800,600)
   assert.ok(pos.left>=8 && pos.left+248<=792)
   assert.ok(pos.top>=8 && pos.top+210<=592)
   assert.equal(waypointColor({connections:[]}),NAVIGATION_COLOR)
-  assert.equal(waypointColor({connections:[{mapName:'other',waypointCode:'p1'}]}),CONNECTION_COLOR)
+  assert.equal(waypointColor({connections:[{mapName:'other',waypointCode:'p1'}]}),NAVIGATION_COLOR)
+  assert.equal(waypointColor({displayKind:'stairs'}),CONNECTION_COLOR)
 })
 
 test('packaged map names and image references use sequential zone IDs', async () => {
@@ -133,4 +135,35 @@ test('packaged map names and image references use sequential zone IDs', async ()
       assert.ok(names.includes(connection.map_name),`Unknown map ${connection.map_name}`)
     }
   }
+})
+
+test('route display collapses physical aliases but retains revisits without exposing raw IDs', async () => {
+  const {routeLabels,locationLabel}=await import('../src/utils/locations.js')
+  const a={locationId:'4F:P1',displayCode:'P1',floorLabel:'4F'}
+  const b={locationId:'4F:P2',displayCode:'P2',floorLabel:'4F'}
+  const nodes={a,alias:{...a},b,legacy:{label:'zone_internal:p1'}}
+  assert.deepEqual(routeLabels(['a','alias','b','a'],nodes),['4F · P1','4F · P2','4F · P1'])
+  assert.equal(locationLabel(nodes,'legacy'),'Unknown location')
+  assert.equal(locationLabel(nodes,'zone_internal:missing'),'Unknown location')
+})
+
+test('robot crossing internal aliases stays at one displayed point', async () => {
+  const {describeRobotLocation}=await import('../src/utils/mapInteraction.js')
+  const node={locationId:'4F:P1',displayCode:'P1',floorLabel:'4F',displayFloor:4}
+  const nodes={a:{id:'a',...node},alias:{id:'alias',...node}}
+  const task={id:'T1',robotId:'R1',scheduleStage:'assigned',startTime:0,finishTime:10,
+    timetable:[{nodeId:'a',arrival:0,depart:2},{nodeId:'alias',arrival:3,depart:10}]}
+  const location=describeRobotLocation({id:'R1'},[task],nodes,2.5,'a')
+  assert.equal(location.inTransit,false)
+  assert.equal(location.label,'4F · P1')
+  assert.ok(!location.label.includes('→'))
+})
+
+test('only the canonical marker is drawn for a shared place', async () => {
+  const {Group}=await import('three')
+  const {Map3DRenderer}=await import('../src/utils/map3dRenderer.js')
+  const renderer=Object.create(Map3DRenderer.prototype), group=new Group()
+  const wp={code:'p1',nodeId:'a',x:0,y:0,z:0,renderMarker:true}
+  renderer.renderWaypoints(group,{mapName:'internal',waypoints:[wp,{...wp,nodeId:'alias',renderMarker:false}]})
+  assert.equal(group.getObjectByName('waypoints').children.length,1)
 })

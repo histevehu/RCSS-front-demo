@@ -16,22 +16,22 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">Start</label>
-      <select v-model="form.startLocation" required class="form-select">
+      <label for="start-location" class="form-label">Start</label>
+      <select id="start-location" v-model="form.startLocation" required class="form-select">
         <option value="">Select start location</option>
-        <option v-for="loc in locationOptions" :key="loc.value" :value="loc.value">
-          {{ loc.label }}
-        </option>
+        <optgroup v-for="group in locationGroups" :key="group.floor" :label="`${group.floor}F`">
+          <option v-for="loc in group.locations" :key="loc.id" :value="loc.canonicalNodeId">{{ loc.label }}</option>
+        </optgroup>
       </select>
     </div>
 
     <div class="form-group">
-      <label class="form-label">End</label>
-      <select v-model="form.endLocation" required class="form-select">
+      <label for="end-location" class="form-label">End</label>
+      <select id="end-location" v-model="form.endLocation" required class="form-select">
         <option value="">Select end location</option>
-        <option v-for="loc in locationOptions" :key="loc.value" :value="loc.value">
-          {{ loc.label }}
-        </option>
+        <optgroup v-for="group in locationGroups" :key="group.floor" :label="`${group.floor}F`">
+          <option v-for="loc in group.locations" :key="loc.id" :value="loc.canonicalNodeId">{{ loc.label }}</option>
+        </optgroup>
       </select>
     </div>
 
@@ -88,7 +88,10 @@ const taskTypes = [
   { value: 'other', label: 'Other' },
 ]
 
-const locationOptions = computed(() => (store.scene?.nodes || []).filter(n => n.selectable).map(n => ({ value:n.id, label:n.label })))
+const locationOptions = computed(() => store.locations.filter(location => location.selectable))
+const locationGroups = computed(() => [...new Set(locationOptions.value.map(location => location.floor))].sort((a,b) => a-b).map(floor => ({
+  floor, locations: locationOptions.value.filter(location => location.floor === floor).sort((a,b) => Number(a.code.slice(1))-Number(b.code.slice(1)))
+})))
 const submitting = ref(false)
 const submitError = ref('')
 let pendingPayload, pendingRequest

@@ -1,8 +1,9 @@
+import { locationLabel, UNKNOWN_LOCATION } from './locations.js'
 export const NAVIGATION_COLOR = 0x00b894
 export const CONNECTION_COLOR = 0xa29bfe
 
 export function waypointColor(waypoint) {
-  return waypoint.connections?.length || waypoint.linkedMapName ? CONNECTION_COLOR : NAVIGATION_COLOR
+  return waypoint.displayKind === 'stairs' ? CONNECTION_COLOR : NAVIGATION_COLOR
 }
 
 // Marker metadata lives on the parent group, while raycasts hit its meshes or label.
@@ -24,20 +25,22 @@ export function tooltipPosition(x, y, width, height, tooltipWidth = 248, tooltip
     top: Math.max(8, Math.min(y + 16, height - tooltipHeight - 8)) }
 }
 
-const nodeCode = node => node?.code?.split(':').at(-1) || node?.id?.split('/wp:').at(-1) || '—'
 export function describeRobotLocation(robot, tasks, nodeById, time, initialNodeId) {
   const task = tasks.filter(t => t.robotId === robot.id && t.scheduleStage === 'assigned' && t.startTime <= time)
     .sort((a, b) => a.startTime - b.startTime).at(-1)
   const table = task?.timetable || []
   let index = -1
   for (let i = 0; i < table.length && table[i].arrival <= time; i++) index = i
-  const current = nodeById[table[index]?.nodeId] || nodeById[initialNodeId]
+  const current = nodeById[table[index]?.nodeId] || nodeById[initialNodeId] || nodeById[robot.position?.nodeId]
   const next = nodeById[table[index + 1]?.nodeId]
-  const inTransit = !!(current && next && index >= 0 && time >= table[index].depart && time < table[index + 1].arrival)
-  const mapName = current?.mapName || robot.position?.building || '—'
-  const floor = current?.floor ?? parseFloat(robot.position?.floor)
-  const from = nodeCode(current)
-  const nodeText = inTransit ? `${from} → ${next.mapName !== mapName ? `${next.mapName} · ` : ''}${nodeCode(next)}` : from
-  return { mapName, floor, nodeText, inTransit,
+  const inTransit = !!(current?.locationId && next?.locationId && current.locationId !== next.locationId &&
+    index >= 0 && time >= table[index].depart && time < table[index + 1].arrival)
+  const floor = current?.displayFloor ?? null
+  const floorLabel = current?.floorLabel || UNKNOWN_LOCATION
+  const from = current?.displayCode || UNKNOWN_LOCATION
+  const sameFloor = current?.floorLabel === next?.floorLabel
+  const nodeText = inTransit ? (sameFloor ? `${from} → ${next.displayCode}` : `${locationLabel(nodeById,current.id)} → ${locationLabel(nodeById,next.id)}`) : from
+  const label = inTransit ? (sameFloor ? `${floorLabel} · ${nodeText}` : nodeText) : locationLabel(nodeById,current?.id)
+  return { floor, floorLabel, nodeText, label, inTransit,
     nodeId: current?.id, taskId: task && time < task.finishTime ? task.id : null }
 }
