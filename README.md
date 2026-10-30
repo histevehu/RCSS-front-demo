@@ -75,4 +75,4 @@ Language, theme, card folds and desktop rail visibility are remembered locally i
 
 ### Map camera controls
 
-Drag to orbit, right-drag to pan, and scroll/pinch to zoom. Orbit elevation stays between 25° and 75° above the map; panning follows a horizontal plane instead of moving the focus vertically. Zoom and pan limits scale with the visible map bounds, and the nearest camera position stays above the highest visible floor. Switching floors updates these limits without resetting the viewing direction. Reset View restores the overview and clears remaining drag inertia so the camera stops drifting.
+Drag to orbit, right-drag to pan freely along a horizontal plane, and scroll to zoom around the mouse pointer (pinch around the fingers on touch screens). Panning and cursor zoom do not pull the view back towards the scene centre. Orbit elevation stays between 25° and 75° above the map. Zoom distance limits scale with the visible map bounds, keeping the camera above the highest visible floor. Switching floors updates these limits without resetting the viewing direction. Reset View restores the overview and clears remaining drag inertia so the camera stops drifting.

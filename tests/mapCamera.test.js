@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { Box3, Vector3, PerspectiveCamera } from 'three'
+import { Box3, Vector3, PerspectiveCamera, Plane, Ray } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { configureMapControls } from '../src/utils/mapCamera.js'
 import { Map3DRenderer } from '../src/utils/map3dRenderer.js'
@@ -34,15 +34,59 @@ test('orbit limits prevent inverted views, floor penetration and excessive zoom'
   assert.equal(controls.screenSpacePanning, false)
 })
 
-test('large pans stay near the map while keeping the target on its horizontal plane', () => {
+test('horizontal panning is unrestricted while keeping the target on its plane', () => {
   const { camera, controls } = setup()
   const elevation = controls.target.y
   for (const offset of [new Vector3(9999, 0, 0), new Vector3(-9999, 0, 9999), new Vector3(0, 0, -9999)]) {
+    const expected = controls.target.clone().add(offset)
     controls.target.add(offset)
     camera.position.add(offset)
     controls.update()
     assert.equal(controls.target.y, elevation)
+    assert.ok(controls.target.distanceTo(expected) < 1e-6, 'panning must not pull back towards the scene centre')
     assertSafe(camera, controls)
+  }
+  assert.equal(controls.maxTargetRadius, Infinity)
+})
+
+function cursorZoom(camera, controls, x, y, scale) {
+  camera.updateMatrixWorld()
+  const direction = new Vector3(x, y, .5).unproject(camera).sub(camera.position).normalize()
+  // These are the cursor ray and scale computed by OrbitControls' wheel handler.
+  controls._dollyDirection.copy(direction)
+  controls._performCursorZoom = true
+  controls._scale = scale
+  controls.update()
+  controls.update() // Animation frame, as in Map3DRenderer.animate().
+}
+
+test('zoom anchors the pointed world position after panning instead of the scene centre', () => {
+  const { camera, controls } = setup()
+  const pan = new Vector3(500, 0, -500)
+  controls.target.add(pan); camera.position.add(pan); controls.update()
+  camera.updateMatrixWorld()
+  const x = .5, y = -.4
+  const direction = new Vector3(x, y, .5).unproject(camera).sub(camera.position).normalize()
+  const point = new Ray(camera.position.clone(), direction).intersectPlane(
+    new Plane(new Vector3(0, 1, 0), -controls.target.y), new Vector3())
+  assert.ok(point)
+  cursorZoom(camera, controls, x, y, .85)
+  const projected = point.project(camera)
+  assert.ok(Math.abs(projected.x - x) < 1e-6)
+  assert.ok(Math.abs(projected.y - y) < 1e-6)
+  assert.ok(controls.target.distanceTo(controls.cursor) > 500, 'zoom must not recenter a panned view')
+  assertSafe(camera, controls)
+})
+
+test('off-centre cursor zoom keeps frame positions above the floors at both distance limits', () => {
+  for (const aspect of [.46, 1.44]) for (const x of [-.9, .9]) for (const y of [-.9, .9]) {
+    const { camera, controls } = setup()
+    camera.aspect = aspect; camera.updateProjectionMatrix()
+    camera.position.copy(controls.target).add(new Vector3(40, 1, 40)); controls.update()
+    for (const scale of [.001, 1000]) {
+      cursorZoom(camera, controls, x, y, scale)
+      assertSafe(camera, controls)
+    }
   }
 })
 

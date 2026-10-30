@@ -11,18 +11,19 @@ export function configureMapControls(controls, bounds) {
   controls.minPolarAngle = MathUtils.degToRad(15)
   controls.maxPolarAngle = MathUtils.degToRad(65)
   controls.screenSpacePanning = false
+  controls.zoomToCursor = true
   controls.rotateSpeed = 0.65
   controls.zoomSpeed = 0.7
-  controls.panSpeed = 0.7
+  controls.panSpeed = 1
   controls.minDistance = Math.max(5, span * 0.08,
     (bounds.max.y - center.y + 2) / Math.cos(controls.maxPolarAngle))
   controls.maxDistance = Math.max(controls.minDistance * 3, span * 2.5)
   controls.cursor.copy(center)
   controls.minTargetRadius = 0
-  controls.maxTargetRadius = Math.max(2, span * 0.45)
+  controls.maxTargetRadius = Infinity
 
-  // Preserve the viewing direction when the visible floor changes. Native
-  // target-radius clamping then bounds horizontal panning without a hard reset.
+  // Preserve the viewing direction when the visible floor changes.
+  // Horizontal panning stays free; angle/height limits provide the safeguards.
   controls.object.position.y += center.y - controls.target.y
   controls.target.y = center.y
   controls.update()
