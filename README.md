@@ -55,7 +55,7 @@ Orders, robot positions, routes and hover details use **Floor · Point**, such a
 
 The staircase between floors is shown as `Stairs 4F–5F`, with internal waypoints S1–S5. It is not an extra floor or an order destination. **All Floors** includes the stairway; a single-floor view shows that floor and its landing.
 
-The legend uses green navigation points, purple stair waypoints, yellow robots and bright yellow selected routes. Hover for the location, adjacent places, robot state, current task, remaining time and physical position in metres. Hidden objects cannot trigger a tooltip. The visual height exaggeration does not change reported physical coordinates.
+The legend uses green navigation points, purple stair waypoints, blue idle robots, red executing robots and bright yellow selected routes. Hover for the location, adjacent places, robot state, current task, remaining time and physical position in metres. Hidden objects cannot trigger a tooltip. The visual height exaggeration does not change reported physical coordinates.
 
 Internal map/node identifiers remain in API data for planning and resource loading. The public `locations` catalogue and `nodeLocations` mapping supply the names displayed in the UI. The frontend never falls back to showing raw identifiers for an unknown location.
 
@@ -75,7 +75,7 @@ Language, theme, card folds and desktop rail visibility are remembered locally i
 
 ### Map camera controls
 
-Drag to orbit, right-drag to pan freely along a horizontal plane, and scroll to zoom around the mouse pointer (pinch around the fingers on touch screens). Panning and cursor zoom do not pull the view back towards the scene centre. Orbit elevation stays between 25° and 75° above the map. Zoom distance limits scale with the visible map bounds, keeping the camera above the highest visible floor. Switching floors updates these limits without resetting the viewing direction. Reset View restores the overview and clears remaining drag inertia so the camera stops drifting.
+Drag to orbit, right-drag to pan freely along a horizontal plane, and scroll to zoom around the mouse pointer (pinch around the fingers on touch screens). Panning and cursor zoom do not pull the view back towards the scene centre. Orbit elevation stays between 15° and 85° above the map. Zoom distance limits scale with the visible map bounds, keeping the camera above the highest visible floor. Switching floors updates these limits without resetting the viewing direction. Reset View restores the overview and clears remaining drag inertia so the camera stops drifting.
 
 Robots and navigation markers use translucent materials so overlapping objects are easier to distinguish. Selecting a task recolours its existing topology edges to solid bright yellow in both themes, preserving their original shape and thickness. No translucent overlay or glow tube is added; deselection restores the original edge colours. Click/tap the map away from the highlighted route to deselect its task; route clicks, camera drags, right-drag panning and multi-touch gestures retain the selection. Sidebar and toolbar controls do not deselect tasks.
 
@@ -87,3 +87,6 @@ Selecting a task automatically frames its complete highlighted route in the unob
 Task type now derives its required capability from the backend scene catalogue. The order form shows that requirement and the currently capable robots; this is eligibility, not a promise of allocation. The robot roster and map hover show each robot's supported capabilities. Expanded selected-task details show the requirement, assignment-time capabilities and the real matching result. These virtual profiles do not describe physical robot models.
 
 Delivery: R1/R2/R7; Pickup: R3/R4/R7; Sample: R5/R8; Document: R6/R8. Other requires Special operation, which no demo robot currently supports: submitting it demonstrates a failed allocation with NO_CAPABLE_ROBOT. Retry retains the same requirement. UI names follow the selected language; event logs remain English. Explicit API capability overrides must match task type.
+
+
+Map navigation allows a 5°–75° polar-angle range (15°–85° elevation), closer overhead inspection and a wider zoom-out range. Camera height is protected dynamically at the current angle rather than reserving distance for the shallowest angle. Horizontal panning and cursor-centred zoom remain free. Pale translucent architecture and a quiet grid give priority to navigation points, topology, yellow planned routes and robot state. Hiding Robots hides unselected robots; the robot assigned to the selected task remains visible on its visible floor, including for queued or completed tasks. Deselecting returns to the global visibility setting. Red indicates actual execution state, not merely selection.

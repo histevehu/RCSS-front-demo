@@ -26,7 +26,8 @@ export function highlightTopologyPath(mapGroups, path, color) {
       material.emissive.setHex(selected ? color : original.emissive)
       material.emissiveIntensity = selected ? .8 : original.emissiveIntensity
       material.opacity = selected ? 1 : original.opacity
-      material.transparent = selected ? false : original.transparent
+      // 仍进入透明物体排序队列，满不透明度最后绘制，避免被淡色建筑覆盖。
+      material.transparent = selected ? true : original.transparent
       material.depthTest = selected ? false : original.depthTest
       material.depthWrite = selected ? false : original.depthWrite
       line.renderOrder = selected ? 1000 : original.renderOrder

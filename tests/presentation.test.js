@@ -56,9 +56,9 @@ test('3D themes update the existing scene without replacing geometry, robots or 
   floor.material=wall.material.clone();wall.userData.themeRole='wall';floor.userData.themeRole='floor'
   const robot=new Group();robot.position.set(1,2,3);renderer.scene.add(wall,floor,robot)
   const geometry=wall.geometry,cam=renderer.camera.position.clone()
-  renderer.setTheme('light');assert.equal(renderer.scene.background.getHex(),0xe8eff5)
+  renderer.setTheme('light');assert.equal(renderer.scene.background.getHex(),0xf5f8fc)
   const lightWall=wall.material.color.getHex()
-  renderer.setTheme('dark');assert.equal(renderer.scene.background.getHex(),0x0c1420)
+  renderer.setTheme('dark');assert.equal(renderer.scene.background.getHex(),0x172333)
   assert.notEqual(lightWall,wall.material.color.getHex());assert.equal(wall.geometry,geometry)
   assert.deepEqual(renderer.camera.position,cam);assert.deepEqual(robot.position.toArray(),[1,2,3])
 })

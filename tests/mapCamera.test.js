@@ -127,3 +127,13 @@ test('empty scenes do not corrupt the camera or navigation limits', () => {
   configureMapControls(controls, new Box3())
   assert.deepEqual(camera.position, before)
 })
+
+test('overhead inspection can zoom closer while keeping shallow-angle height protection',()=>{
+  const {camera,controls}=setup()
+  const oldMinimum=(bounds.max.y-controls.target.y+2)/Math.cos(65*Math.PI/180)
+  camera.position.copy(controls.target).add(new Vector3(0,10,1));controls.update()
+  assert.ok(camera.position.distanceTo(controls.target)<oldMinimum)
+  assertSafe(camera,controls)
+  assert.ok(controls.maxDistance>=360)
+  assert.ok(controls.maxPolarAngle>65*Math.PI/180)
+})

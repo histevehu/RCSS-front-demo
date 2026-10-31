@@ -13,6 +13,7 @@
         <div><i class="legend-node"></i><span>{{ ui.t('navigationPoint') }} (P1, P2…)</span></div>
         <div><i class="legend-portal"></i><span>{{ ui.t('stairs') }}</span></div>
         <div><i class="legend-robot"></i><span>{{ ui.t('robot') }} (R1–R8)</span></div>
+        <div><i class="legend-executing"></i><span>{{ ui.t('executingRobot') }}</span></div>
         <div><i class="legend-route"></i><span>{{ ui.t('selectedRoute') }}</span></div>
         <div><i class="legend-start"></i><span>{{ ui.t('routeStart') }}</span><i class="legend-end"></i><span>{{ ui.t('routeEnd') }}</span></div>
         <small>{{ ui.t('mapHelp') }}</small>
@@ -33,7 +34,7 @@ import { Map3DRenderer } from '../utils/map3dRenderer'
 import { parsePGM, pixelsToCanvas } from '../utils/pgmParser'
 import { useUiStore } from '../stores/uiStore'
 import { waypointColor, findMapTarget, tooltipPosition } from '../utils/mapInteraction.js'
-import { mapThemes } from '../utils/mapTheme.js'
+import { mapThemes, robotIsVisible, robotColor } from '../utils/mapTheme.js'
 import { MapClickGesture, isPointNearRoute } from '../utils/mapSelection.js'
 import { highlightTopologyPath } from '../utils/topologyHighlight.js'
 const store = useAppStore(), ui = useUiStore()
@@ -201,13 +202,18 @@ function makeRobot(id) {
   const mesh = new THREE.Group()
   const color=mapThemes[ui.preferences.theme].robot
   const body = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .8, 16), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .3, transparent:true, opacity:.65, depthWrite:false }))
+  body.renderOrder=1100
+  body.material.depthTest=false
+  body.name='robot-body'
   body.userData.themeRole='robot'
   mesh.add(body)
   const front = new THREE.Mesh(new THREE.ConeGeometry(.23, .6, 3), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent:true, opacity:.7, depthWrite:false }))
+  front.renderOrder=1101; front.material.depthTest=false
   front.rotation.x = Math.PI / 2; front.position.z = .5; mesh.add(front)
   const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 64
   drawRobotLabel(canvas, id)
   const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), depthTest: false, depthWrite:false }))
+  label.renderOrder=1102
   label.name='robot-label'; label.scale.set(2, 1, 1); label.position.y = 1.4; mesh.add(label)
   mesh.userData.robotId = id
   renderer.scene.add(mesh)
@@ -227,7 +233,10 @@ function updateFrame() {
     const delta = next.clone().sub(mesh.position)
     if (delta.lengthSq() > 1e-8) mesh.rotation.y = Math.atan2(delta.x, delta.z)
     mesh.position.copy(next)
-    mesh.visible = showRobots.value && (floor.value === 'all' || String(store.robotFloor(robot, now)) === floor.value)
+    // 状态驱动颜色，不按选中样式伪装执行状态；复用现有材质。
+    const body=mesh.getObjectByName('robot-body'), color=robotColor(ui.preferences.theme,robot.status)
+    body.material.color.set(color); body.material.emissive.set(color)
+    mesh.visible = robotIsVisible(showRobots.value,robot.id,store.selectedTask?.robotId,floor.value,store.robotFloor(robot,now))
   }
   if (pointerPosition && performance.now() - lastPick > 100) { lastPick = performance.now(); pickTarget() }
   const task = store.selectedTask
@@ -302,7 +311,7 @@ onUnmounted(() => {
 .tool-popover { position:absolute; bottom:calc(100% + 8px); right:0; border:1px solid var(--border); border-radius:8px; background:var(--surface-solid); box-shadow:var(--shadow); padding:12px; color:var(--text); }
 .object-options { display:flex; flex-direction:column; gap:10px; min-width:140px; }.object-options label { display:flex; align-items:center; gap:7px; }
 .legend-content { width:238px; }.legend-content>div { display:flex; gap:8px; align-items:center; margin-top:7px; }.legend-content i { display:inline-block; width:9px; height:9px; flex-shrink:0; border-radius:50%; }.legend-content small { display:block; margin-top:10px; color:var(--muted); font-size:11px; line-height:1.6; }
-.legend-node { background:var(--map-node); }.legend-portal { background:var(--map-stair); }.legend-content .legend-robot { border-radius:2px; background:var(--map-robot); }.legend-content .legend-route { height:3px; background:var(--map-route); border-radius:0; }.legend-start { background:var(--map-route); }.legend-end { background:var(--map-end); }
+.legend-executing { background:var(--map-executing); border-radius:2px; }.legend-node { background:var(--map-node); }.legend-portal { background:var(--map-stair); }.legend-content .legend-robot { border-radius:2px; background:var(--map-robot); }.legend-content .legend-route { height:3px; background:var(--map-route); border-radius:0; }.legend-start { background:var(--map-route); }.legend-end { background:var(--map-end); }
 .map-tooltip { position:absolute; z-index:30; pointer-events:none; width:248px; max-width:calc(100% - 16px); padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--surface-solid); box-shadow:var(--shadow); color:var(--text); font-size:11px; }.map-tooltip strong { font-size:13px; }.map-tooltip dl { display:grid; grid-template-columns:80px minmax(0,1fr); gap:6px 8px; margin-top:8px; }.map-tooltip dt { color:var(--muted); }.map-tooltip dd { margin:0; overflow-wrap:anywhere; }
 @media(max-width:800px) { .map-tools { bottom:68px; left:16px; right:16px; gap:5px; }.map-tools select,.map-tools button,.tool-menu>summary { min-height:36px; padding:8px 6px; }.map-legend .tool-popover { right:0; }.legend-content { max-width:calc(100vw - 20px); } }
 </style>

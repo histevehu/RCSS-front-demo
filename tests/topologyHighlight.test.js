@@ -15,7 +15,8 @@ test('selection recolours the same topology mesh without replacing or thickening
   const segments=highlightTopologyPath(groups,['b','a'],0xfacc15)
   assert.equal(lines[0].geometry,geometry);assert.equal(lines[0].material,material)
   assert.equal(geometry.parameters.radius,.05);assert.equal(material.color.getHex(),0xfacc15)
-  assert.equal(material.transparent,false);assert.equal(material.opacity,1)
+  // 满不透明度仍使用透明排序队列，保证路线晚于半透明建筑绘制。
+  assert.equal(material.transparent,true);assert.equal(material.opacity,1)
   assert.equal(lines[1].material.color.getHex(),0x74b9ff)
   assert.equal(segments.length,16);assert.equal(segments[0][0].x,10)
 })

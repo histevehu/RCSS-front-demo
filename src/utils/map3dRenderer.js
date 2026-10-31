@@ -91,11 +91,13 @@ export class Map3DRenderer {
   setTheme(theme) {
     this.theme = theme
     const light=theme === 'light'
-    const background=light ? 0xe8eff5 : 0x0c1420
+    const background=light ? 0xf5f8fc : 0x172333
     this.scene.background.set(background)
     this.scene.fog.color.set(background)
+    this.scene.fog.near=600
+    this.scene.fog.far=2000
     const colors=this.grid.geometry.attributes.color, positions=this.grid.geometry.attributes.position
-    const major=new THREE.Color(light ? 0xa8bbcc : 0x40516a), minor=new THREE.Color(light ? 0xcddbe6 : 0x26364b)
+    const major=new THREE.Color(light ? 0xd4e1eb : 0x34465b), minor=new THREE.Color(light ? 0xe8eff5 : 0x233347)
     for(let i=0; i<colors.count; i+=2) {
       const isAxis=(positions.getX(i)===0 && positions.getX(i+1)===0) || (positions.getZ(i)===0 && positions.getZ(i+1)===0)
       const color=isAxis ? major:minor
@@ -109,13 +111,16 @@ export class Map3DRenderer {
         object.material.emissive?.set(color)
       }
       if(object.userData.themeRole === 'wall') {
-        object.material.color.set(light ? 0x8199ad : 0xb0c4de)
-        object.material.emissive.set(light ? 0xa8bbcc : 0x87ceeb)
-        object.material.opacity=light ? .5:.35
+        object.material.color.set(light ? 0xc9dce8 : 0x7795ad)
+        object.material.emissive.set(light ? 0xe8f2f8 : 0x506b84)
+        object.material.opacity=light ? .14:.12
       }
       if(object.userData.themeRole === 'floor') {
-        object.material.color.set(light ? 0xe0e8ee : 0x596b7e)
-        object.material.emissive.set(light ? 0xe8eef3 : 0x46576a)
+        object.material.color.set(light ? 0xeaf2f8 : 0x344c65)
+        object.material.emissive.set(light ? 0xf0f7fc : 0x263d53)
+        object.material.transparent=true
+        object.material.opacity=light ? .38:.25
+        object.material.depthWrite=false
       }
     })
   }
@@ -627,6 +632,8 @@ export class Map3DRenderer {
       roughness: 0.3
     })
     const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial)
+    cylinder.renderOrder=1050
+    cylinder.material.depthTest=false
     if(wp.markerColor !== undefined) cylinder.userData.themeRole=wp.displayKind === 'stairs' ? 'stair':'node'
     cylinder.position.y = 0.3
     cylinder.castShadow = true
@@ -645,6 +652,8 @@ export class Map3DRenderer {
       roughness: 0.1
     })
     const ring = new THREE.Mesh(ringGeometry, ringMaterial)
+    ring.renderOrder=1051
+    ring.material.depthTest=false
     if(wp.markerColor !== undefined) ring.userData.themeRole=wp.displayKind === 'stairs' ? 'stair':'node'
     ring.position.y = 0.55
     ring.rotation.x = Math.PI / 2
@@ -865,7 +874,7 @@ export class Map3DRenderer {
     this.controls.target.copy(pose.target)
     this.camera.position.copy(pose.position)
     this.controls.cursor.y = pose.target.y
-    this.controls.minDistance = Math.max(5,(bounds.max.y+2-pose.target.y)/Math.cos(this.controls.maxPolarAngle))
+    // 靠近路线时使用实时高度保护，不按最平视角预先拉远相机。
     this.controls.maxDistance = Math.max(this.controls.maxDistance,pose.distance*2)
     this.controls.update()
     this.camera.updateMatrixWorld()

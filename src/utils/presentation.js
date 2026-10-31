@@ -2,7 +2,7 @@ import { formatDuration } from './demo.js'
 
 export const messages = {
   'zh-CN': {
-    requiredCapability:'所需能力', supportedCapabilities:'支持能力', capabilityMatch:'能力匹配', matched:'匹配', mismatched:'不匹配', unknownCapability:'能力信息不可用', transportCapability:'物品配送', pickupCapability:'物品取货', sampleCapability:'样本运输', documentCapability:'文件运输', specialCapability:'特殊作业', noCapableRobot:'当前无机器人具备所需能力，提交后将调度失败。', capableRobots:'能力符合的机器人', capabilityHint:'演示能力配置；实际分配还取决于路径、优先级和资源占用。',
+    executingRobot:'执行中的机器人', requiredCapability:'所需能力', supportedCapabilities:'支持能力', capabilityMatch:'能力匹配', matched:'匹配', mismatched:'不匹配', unknownCapability:'能力信息不可用', transportCapability:'物品配送', pickupCapability:'物品取货', sampleCapability:'样本运输', documentCapability:'文件运输', specialCapability:'特殊作业', noCapableRobot:'当前无机器人具备所需能力，提交后将调度失败。', capableRobots:'能力符合的机器人', capabilityHint:'演示能力配置；实际分配还取决于路径、优先级和资源占用。',
     taskOverview:'任务概览', taskRecords:'任务记录', details:'详情', clearSelection:'取消选择任务', emptyRecordsHint:'新建任务后，可在这里查看调度与执行状态。', appTitle:'机器人任务调度中心', overview:'总览', tasks:'任务', liveMode:'实时调度 · 模拟执行',
     connected:'已连接', disconnected:'连接中断', paused:'已暂停', pause:'暂停', resume:'继续', speed:'演示倍速', reset:'重置演示',
     language:'界面语言', theme:'界面主题', light:'浅色', dark:'深色', focus:'专注地图', exitFocus:'退出专注',
@@ -26,7 +26,7 @@ export const messages = {
     MAP_NOT_ALLOWED:'机器人无法进入目标地点', NODE_NOT_FOUND:'所选地点不可用', PATH_UNREACHABLE:'起终点之间没有可达路径', NO_FEASIBLE_ROBOT:'当前没有可执行此任务的机器人', SCHEDULE_FAILED:'调度失败，请重试',
   },
   'en-US': {
-    requiredCapability:'Required capability', supportedCapabilities:'Supported capabilities', capabilityMatch:'Capability match', matched:'Matched', mismatched:'Mismatch', unknownCapability:'Capability unavailable', transportCapability:'Item delivery', pickupCapability:'Item pickup', sampleCapability:'Sample transport', documentCapability:'Document transport', specialCapability:'Special operation', noCapableRobot:'No robot supports this capability. Scheduling will fail if submitted.', capableRobots:'Capable robots', capabilityHint:'Demo capability configuration; allocation also depends on route, priority and resources.',
+    executingRobot:'Executing robot', requiredCapability:'Required capability', supportedCapabilities:'Supported capabilities', capabilityMatch:'Capability match', matched:'Matched', mismatched:'Mismatch', unknownCapability:'Capability unavailable', transportCapability:'Item delivery', pickupCapability:'Item pickup', sampleCapability:'Sample transport', documentCapability:'Document transport', specialCapability:'Special operation', noCapableRobot:'No robot supports this capability. Scheduling will fail if submitted.', capableRobots:'Capable robots', capabilityHint:'Demo capability configuration; allocation also depends on route, priority and resources.',
     taskOverview:'Task overview', taskRecords:'Task records', details:'Details', clearSelection:'Clear selected task', emptyRecordsHint:'Create an order to follow its allocation and execution here.', appTitle:'Robot Task Dispatch Center', overview:'Overview', tasks:'Tasks', liveMode:'Live Scheduling · Simulated Execution',
     connected:'Connected', disconnected:'Disconnected', paused:'Paused', pause:'Pause', resume:'Resume', speed:'Demo speed', reset:'Reset Demo',
     language:'Interface language', theme:'Interface theme', light:'Light', dark:'Dark', focus:'Focus map', exitFocus:'Exit focus',
