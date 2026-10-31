@@ -699,6 +699,8 @@ export class Map3DRenderer {
         if (!target) continue
 
         const line = this.createTubeConnection(wp, target, 0x74b9ff, 0.05)
+        // 保存算法节点标识，选中任务时直接改变这条拓扑线的颜色。
+        line.userData.topologyNodeIds = [wp.nodeId, target.nodeId]
         lineGroup.add(line)
       }
     }

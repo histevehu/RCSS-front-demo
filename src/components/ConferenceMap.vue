@@ -35,6 +35,7 @@ import { useUiStore } from '../stores/uiStore'
 import { waypointColor, findMapTarget, tooltipPosition } from '../utils/mapInteraction.js'
 import { mapThemes } from '../utils/mapTheme.js'
 import { MapClickGesture, isPointNearRoute } from '../utils/mapSelection.js'
+import { highlightTopologyPath } from '../utils/topologyHighlight.js'
 const store = useAppStore(), ui = useUiStore()
 const container = ref(null), loading = ref(true), failure = ref(''), floor = ref('all')
 const showRobots = ref(true), showRoute = ref(true)
@@ -187,31 +188,18 @@ function updateFrame() {
   }
   if (pointerPosition && performance.now() - lastPick > 100) { lastPick = performance.now(); pickTarget() }
   const task = store.selectedTask
-  const key = `${meshSession}:${floor.value}:${showRoute.value}:${task?.id}:${task?.path?.join('|')}`
+  const key = `${meshSession}:${floor.value}:${showRoute.value}:${ui.preferences.theme}:${task?.id}:${task?.path?.join('|')}`
   if (key !== routeKey) {
     routeKey = key
     if (routeGroup) disposeObject(routeGroup)
     routeGroup = null
-    routeSegments = []
+    routeSegments = highlightTopologyPath(renderer.mapGroups, showRoute.value ? task?.path : [], mapThemes[ui.preferences.theme].route)
     if (showRoute.value && task?.path?.length) {
       routeGroup = new THREE.Group()
       const path = task.path.filter(id => store.nodeById[id])
       const points = path.map(id => vector(store.nodeById[id].position, .35))
       const visible = index => floor.value === 'all' || String(store.nodeById[path[index]].displayFloor) === floor.value
-      for (let i=1; i<points.length; i++) {
-        if (!visible(i-1) || !visible(i)) continue
-        const delta=points[i].clone().sub(points[i-1])
-        if (delta.length() < 1e-6) continue
-        routeSegments.push([points[i-1],points[i]])
-        const segment=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,delta.length(),8),new THREE.MeshBasicMaterial({color:mapThemes[ui.preferences.theme].route,depthTest:false,depthWrite:false}))
-        segment.userData.themeRole='route'
-        segment.position.copy(points[i-1]).addScaledVector(delta,.5)
-        segment.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize())
-        segment.renderOrder=1000; routeGroup.add(segment)
-        const glow=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,delta.length(),8),new THREE.MeshBasicMaterial({color:mapThemes[ui.preferences.theme].route,transparent:true,opacity:.25,depthTest:false,depthWrite:false}))
-        glow.userData.themeRole='route'; glow.position.copy(segment.position); glow.quaternion.copy(segment.quaternion)
-        glow.renderOrder=999; routeGroup.add(glow)
-      }
+      // 路线颜色直接应用于已有拓扑线；此组仅保留起终点标记。
       for (const [i, index] of [0, points.length-1].entries()) {
         if (index < 0 || !visible(index)) continue
         const point = points[index]
