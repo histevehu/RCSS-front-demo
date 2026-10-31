@@ -25,7 +25,7 @@
       <button :aria-expanded="false" @click="openPanel('right','robots')"><span aria-hidden="true">‹</span><span>{{ ui.t('robots') }}</span><span class="badge">{{ store.robotStats.total }} {{ ui.t('online') }}</span></button>
     </nav>
     <aside v-show="rightVisible" class="workspace-rail right-rail" :aria-label="ui.t('robotArea')" @wheel.stop><CollapsiblePanel panel-id="robots" :title="ui.t('robots')" :badge="`${store.robotStats.total} ${ui.t('online')}`"><RobotStatus /></CollapsiblePanel></aside>
-    <TaskInspector v-if="store.selectedTask" :task="store.selectedTask" @layout-change="refocusSelection" />
+    <TaskInspector v-if="store.selectedTask" v-show="!mobile || !mobilePanel" :task="store.selectedTask" @layout-change="refocusSelection" />
     <div class="left-dock"><button class="primary new-task-button" @click="showForm=true">＋ {{ ui.t('newTask') }}</button></div>
     <div class="mobile-drawers"><button :aria-expanded="mobilePanel==='left'" @click="mobilePanel=mobilePanel==='left' ? null:'left'">{{ ui.t('tasks') }} · {{ store.stats.total }}</button><button :aria-expanded="mobilePanel==='right'" @click="mobilePanel=mobilePanel==='right' ? null:'right'">{{ ui.t('robots') }} · {{ store.robotStats.total }}</button></div>
     <Modal v-model="showForm" :title="ui.t('newTask')"><TaskForm @submit="created" @cancel="showForm=false" /></Modal>
