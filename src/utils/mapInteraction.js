@@ -1,3 +1,4 @@
+import { taskAtTime } from './demo.js'
 import { locationLabel, UNKNOWN_LOCATION } from './locations.js'
 export const NAVIGATION_COLOR = 0x00b894
 export const CONNECTION_COLOR = 0xa29bfe
@@ -25,8 +26,8 @@ export function tooltipPosition(x, y, width, height, tooltipWidth = 248, tooltip
     top: Math.max(8, Math.min(y + 16, height - tooltipHeight - 8)) }
 }
 
-export function describeRobotLocation(robot, tasks, nodeById, time, initialNodeId) {
-  const task = tasks.filter(t => t.robotId === robot.id && t.scheduleStage === 'assigned' && t.startTime <= time)
+export function describeRobotLocation(robot, tasks, nodeById, time, initialNodeId, plannedTasks = null) {
+  const task = plannedTasks ? taskAtTime(plannedTasks,time) : tasks.filter(t => t.robotId === robot.id && t.scheduleStage === 'assigned' && t.startTime <= time)
     .sort((a, b) => a.startTime - b.startTime).at(-1)
   const table = task?.timetable || []
   let index = -1

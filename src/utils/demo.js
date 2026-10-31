@@ -31,3 +31,10 @@ export async function api(path, body) {
   }
   return data
 }
+
+/** 已按开始时间排序的机器人计划中，二分定位当前/最近一次执行的任务。 */
+export function taskAtTime(tasks, now) {
+  let low=0, high=tasks.length
+  while(low<high) {const mid=(low+high)>>>1;if(tasks[mid].startTime<=now) low=mid+1;else high=mid}
+  return tasks[low-1]
+}

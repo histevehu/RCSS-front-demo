@@ -3,6 +3,7 @@
  */
 
 import * as THREE from 'three'
+import { mergeGridCells } from './gridRectangles.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { createWaypointLabel, paintMapLabel, sizeWaypointLabel, layoutWaypointLabels } from './mapLabels.js'
 import { mapThemes } from './mapTheme.js'
@@ -55,7 +56,8 @@ export class Map3DRenderer {
     })
     this.renderer.setSize(width, height)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    this.renderer.shadowMap.enabled = true
+    // 建筑仅作半透明背景，不需要每帧重绘阴影贴图。
+    this.renderer.shadowMap.enabled = false
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     this.container.appendChild(this.renderer.domElement)
 
@@ -457,8 +459,8 @@ export class Map3DRenderer {
     if (obstacles.length === 0) return
 
     // 使用 InstancedMesh 批量渲染
-    const boxSize = resolution * SAMPLE_RATE
-    const geometry = new THREE.BoxGeometry(boxSize, WALL_HEIGHT, boxSize)
+    const rectangles=mergeGridCells(obstacles)
+    const geometry = new THREE.BoxGeometry(1, WALL_HEIGHT, 1)
     // 半透明墙体材质 - 让路线更清晰
     const material = new THREE.MeshStandardMaterial({
       color: 0xB0C4DE,
@@ -471,20 +473,20 @@ export class Map3DRenderer {
       depthWrite: false
     })
 
-    const mesh = new THREE.InstancedMesh(geometry, material, obstacles.length)
+    const mesh = new THREE.InstancedMesh(geometry, material, rectangles.length)
     mesh.userData.themeRole = 'wall'
     mesh.castShadow = true
     mesh.receiveShadow = true
 
     const matrix = new THREE.Matrix4()
-    const color = new THREE.Color()
 
-    obstacles.forEach((obs, i) => {
+    rectangles.forEach((obs, i) => {
       // 像素坐标 -> 地图坐标（米）
-      const worldX = origin[0] + (obs.x + 0.5) * resolution
-      const worldY = origin[1] + (pgmHeight - obs.y - 0.5) * resolution
+      const worldX = origin[0] + (obs.x + obs.width / 2) * resolution
+      const worldY = origin[1] + (pgmHeight - obs.y - obs.height / 2) * resolution
 
       // 地图坐标 -> Three.js 坐标
+      matrix.makeScale(obs.width * resolution,1,obs.height * resolution)
       matrix.setPosition(worldX, WALL_HEIGHT / 2, -worldY)
       mesh.setMatrixAt(i, matrix)
     })
@@ -505,7 +507,6 @@ export class Map3DRenderer {
     const { resolution, origin } = mapConfig
 
     const sampleRate = SAMPLE_RATE
-    const tileSize = resolution * sampleRate
     const floorThickness = 0.02
 
     // 收集室内地板位置
@@ -542,12 +543,12 @@ export class Map3DRenderer {
               
               if (globalIndoorMap.indoorMap[globalIdx] === 0) {
                 // 全局判定为室内，创建地板（使用局部坐标）
-                floorPositions.push({ x: localX, y: localY })
+                floorPositions.push({ x:px, y:py })
               }
             }
           } else {
             // 如果没有全局地图，所有自由空间都渲染地板
-            floorPositions.push({ x: localX, y: localY })
+            floorPositions.push({ x:px, y:py })
           }
         }
       }
@@ -555,7 +556,8 @@ export class Map3DRenderer {
 
     if (floorPositions.length === 0) return
 
-    const geometry = new THREE.BoxGeometry(tileSize, floorThickness, tileSize)
+    const rectangles=mergeGridCells(floorPositions)
+    const geometry = new THREE.BoxGeometry(1, floorThickness, 1)
     const material = new THREE.MeshStandardMaterial({
       color: 0xD6D3CC,
       emissive: 0xE8E6E0,
@@ -564,11 +566,12 @@ export class Map3DRenderer {
       metalness: 0.1
     })
 
-    const mesh = new THREE.InstancedMesh(geometry, material, floorPositions.length)
+    const mesh = new THREE.InstancedMesh(geometry, material, rectangles.length)
     const matrix = new THREE.Matrix4()
 
-    floorPositions.forEach((pos, i) => {
-      matrix.setPosition(pos.x, -0.01, -pos.y)
+    rectangles.forEach((pos, i) => {
+      matrix.makeScale(pos.width * resolution,1,pos.height * resolution)
+      matrix.setPosition(origin[0]+(pos.x+pos.width/2)*resolution, -0.01, -(origin[1]+(pgmHeight-pos.y-pos.height/2)*resolution))
       mesh.setMatrixAt(i, matrix)
     })
 

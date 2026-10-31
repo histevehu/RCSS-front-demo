@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
-import { api, formatDuration, interpolate } from '../utils/demo.js'
+import { api, formatDuration, interpolate, taskAtTime } from '../utils/demo.js'
 import { describeRobotLocation } from '../utils/mapInteraction.js'
 import { locationLabel, routeLabels } from '../utils/locations.js'
 
@@ -123,16 +123,24 @@ export const useAppStore = defineStore('app', () => {
     if (filter === 'today') return tasks.value.filter(t => new Date(t.createdAt).toDateString() === currentTime.value.toDateString())
     return tasks.value
   }
+  // 每次后端快照只建一次计划索引；动画帧不再遍历、排序全场历史。
+  const plansByRobot = computed(() => {
+    const index = new Map()
+    for(const task of snapshot.value?.tasks || []) {
+      if(task.scheduleStage!=='assigned' || !task.robotId) continue
+      if(!index.has(task.robotId)) index.set(task.robotId,[])
+      index.get(task.robotId).push(task)
+    }
+    for(const plan of index.values()) plan.sort((a,b)=>a.startTime-b.startTime)
+    return index
+  })
   function robotPosition(robot, time) {
-    const planned = (snapshot.value?.tasks || []).filter(t => t.robotId === robot.id && t.scheduleStage === 'assigned')
-      .sort((a, b) => a.startTime - b.startTime)
-    const started = planned.filter(t => t.startTime <= time)
-    if (started.length) return interpolate(started.at(-1).trajectory, time)
-    return robot.worldPosition
+    const task=taskAtTime(plansByRobot.value.get(robot.id) || [],time)
+    return task ? interpolate(task.trajectory,time):robot.worldPosition
   }
   function robotLocation(robot, time = uiNow.value) {
     const initial = scene.value?.robots.find(r => r.name === robot.id)?.nodeId
-    return describeRobotLocation(robot, snapshot.value?.tasks || [], nodeById.value, time, initial)
+    return describeRobotLocation(robot, snapshot.value?.tasks || [], nodeById.value, time, initial,plansByRobot.value.get(robot.id) || [])
   }
   function robotFloor(robot, time) { return robotLocation(robot, time).floor }
   function selectTask(id) { selectedTaskId.value = id; selectionVersion.value++ }

@@ -93,3 +93,8 @@ Map navigation allows a 5°–75° polar-angle range (15°–85° elevation), cl
 
 
 Navigation markers show user-facing labels (Floor · Point; S1–S5 on stairs). Label text uses the same node/stair colours as the legend and updates with the theme. Shared locations have one label. Labels maintain a readable screen size; overlapping text is suppressed when zoomed out and recovers automatically when zoomed in, without hiding the marker itself. Robot label text follows the blue idle / red executing colours. Floor visibility also hides its labels.
+
+
+### Rendering and history performance
+
+Map pixels are merged into exact adjacent rectangles for rendering; algorithm map data is unchanged. Robot animation uses per-snapshot timeline indexes. Task records paginate at 30 per page; filters and metrics still use the complete session. See [the measured performance check](docs/map-performance.md) for results and limits, including the distinction between frontend history fixtures and backend scheduling capacity.
