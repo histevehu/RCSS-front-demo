@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { mapThemes } from './mapTheme.js'
 import { configureMapControls, discardControlMomentum } from './mapCamera.js'
+import { fitRouteCamera } from './routeCamera.js'
 
 // 常量配置
 const Z_SCALE = 3 // 楼层高度缩放
@@ -852,6 +853,22 @@ export class Map3DRenderer {
 
   updateViewLimits() {
     configureMapControls(this.controls, this.getVisibleBounds())
+  }
+
+  /** 按完整路线聚焦到无遮挡视口，保留鼠标中心缩放、自由平移和俯视保护。 */
+  focusRoute(points, viewport) {
+    const bounds = this.getVisibleBounds()
+    if (!bounds) return
+    const pose = fitRouteCamera(this.camera, points, viewport, bounds.max.y + 2)
+    if (!pose) return
+    discardControlMomentum(this.controls)
+    this.controls.target.copy(pose.target)
+    this.camera.position.copy(pose.position)
+    this.controls.cursor.y = pose.target.y
+    this.controls.minDistance = Math.max(5,(bounds.max.y+2-pose.target.y)/Math.cos(this.controls.maxPolarAngle))
+    this.controls.maxDistance = Math.max(this.controls.maxDistance,pose.distance*2)
+    this.controls.update()
+    this.camera.updateMatrixWorld()
   }
 
   fitCamera() {

@@ -62,3 +62,13 @@ test('3D themes update the existing scene without replacing geometry, robots or 
   assert.notEqual(lightWall,wall.material.color.getHex());assert.equal(wall.geometry,geometry)
   assert.deepEqual(renderer.camera.position,cam);assert.deepEqual(robot.position.toArray(),[1,2,3])
 })
+
+test('reselecting the same task emits a new camera focus request without changing the order',async()=>{
+  const { useAppStore }=await import('../src/stores/appStore.js')
+  setActivePinia(createPinia())
+  const store=useAppStore()
+  store.selectTask('T001');const version=store.selectionVersion
+  store.selectTask('T001')
+  assert.equal(store.selectedTaskId,'T001')
+  assert.equal(store.selectionVersion,version+1)
+})

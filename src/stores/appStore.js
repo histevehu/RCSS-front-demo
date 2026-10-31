@@ -8,6 +8,7 @@ export const useAppStore = defineStore('app', () => {
   const snapshot = shallowRef(null)
   const scene = shallowRef(null)
   const selectedTaskId = ref(null)
+  const selectionVersion = ref(0)
   const connected = ref(false)
   const error = ref('')
   const busy = ref(false)
@@ -82,7 +83,7 @@ export const useAppStore = defineStore('app', () => {
       startNode: task.routeNodes[0], endNode: task.routeNodes[1], priority: task.priority,
       taskType: task.taskType, notes: task.notes || '', retryTaskId })
     if (gen !== generation || result.sessionId !== sessionId.value) throw new Error('Demonstration changed; submit again')
-    selectedTaskId.value = result.task.id
+    selectTask(result.task.id)
     // Prevent a poll started before acceptance from replacing this task.
     applied = ++sequence
     snapshot.value = { ...snapshot.value, tasks: [result.task, ...snapshot.value.tasks.filter(t => t.id !== result.task.id)] }
@@ -134,9 +135,9 @@ export const useAppStore = defineStore('app', () => {
     return describeRobotLocation(robot, snapshot.value?.tasks || [], nodeById.value, time, initial)
   }
   function robotFloor(robot, time) { return robotLocation(robot, time).floor }
-  function selectTask(id) { selectedTaskId.value = id }
+  function selectTask(id) { selectedTaskId.value = id; selectionVersion.value++ }
   function setMaps(data) { maps.value = data }
   return { scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
-    selectedTaskId, selectedTask, currentTime, nodeById, locations, locationById, formatLocation, formatRoute, maps, connected, busy, error,
+    selectedTaskId, selectionVersion, selectedTask, currentTime, nodeById, locations, locationById, formatLocation, formatRoute, maps, connected, busy, error,
     loadScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
 })

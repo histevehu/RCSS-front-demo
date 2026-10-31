@@ -78,7 +78,13 @@ function toggleFocus() { focus.value=!focus.value }
 function filterTasks(value) { focus.value=false; ui.preferences.leftHidden=false; ui.preferences.folds.list=false; if(mobile.value) mobilePanel.value='left'; router.push({name:'tasks',query:{filter:value}}) }
 function openDetails() { ui.preferences.folds.details=false }
 function created(task) { store.selectTask(task.id); showForm.value=false; focus.value=false; ui.preferences.leftHidden=false; openDetails(); if(mobile.value) mobilePanel.value='left' }
-watch(()=>store.selectedTaskId,()=>{ if(store.selectedTaskId) openDetails() })
+watch(()=>`${store.selectedTaskId}:${store.selectionVersion}`,()=>{
+  if(store.selectedTaskId) {
+    openDetails()
+    // 手机上选完任务后让出地图，避免展开的抽屉遮住自动聚焦的路线。
+    if(mobile.value) mobilePanel.value=null
+  }
+},{flush:'post'})
 const media=window.matchMedia('(max-width:800px)')
 function resized(event) { mobile.value=event.matches; mobilePanel.value=null }
 onMounted(()=>media.addEventListener('change',resized))

@@ -25,7 +25,7 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as THREE from 'three'
 import yaml from 'js-yaml'
 import { useAppStore } from '../stores/appStore'
@@ -43,6 +43,7 @@ const floors = computed(() => [...new Set(store.locations.filter(location => loc
 let renderer, dead = false, routeGroup, routeKey = '', meshSession
 let routeSegments = []
 const clickGesture = new MapClickGesture()
+let focusRequest = 0
 const meshes = new Map()
 const hover = ref(null)
 const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2()
@@ -147,8 +148,47 @@ async function initialize() {
     canvas.addEventListener('pointercancel', pointerCancel)
     renderer.controls.addEventListener('change', clearHover)
     loading.value = false
+    focusSelectedTask()
   } catch (e) { failure.value = 'The map could not be loaded. Please retry.'; loading.value = false }
 }
+/** 根据面板实际位置预留画布空间，手机抽屉占用底部，桌面侧栏占用两侧。 */
+function routeViewport() {
+  const rect=container.value.getBoundingClientRect(), workspace=container.value.closest('.workspace')
+  const viewport={width:rect.width,height:rect.height,left:24,right:rect.width-24,top:24,bottom:rect.height-76}
+  const visible=element=>element && element.getClientRects().length && getComputedStyle(element).visibility!=='hidden'
+  const header=workspace.querySelector('.workspace-header')
+  if(visible(header)) viewport.top=header.getBoundingClientRect().bottom-rect.top+24
+  for(const panel of workspace.querySelectorAll('.workspace-rail,.collapsed-rail,.rail-toggle')) {
+    if(!visible(panel)) continue
+    const box=panel.getBoundingClientRect()
+    if(rect.width<=800) viewport.bottom=Math.min(viewport.bottom,box.top-rect.top-20)
+    else if(panel.classList.contains('left-rail') || panel.classList.contains('collapsed-left') || panel.classList.contains('left-toggle')) viewport.left=Math.max(viewport.left,box.right-rect.left+20)
+    else viewport.right=Math.min(viewport.right,box.left-rect.left-20)
+  }
+  const tools=workspace.querySelector('.map-tools')
+  if(visible(tools)) viewport.bottom=Math.min(viewport.bottom,tools.getBoundingClientRect().top-rect.top-24)
+  return viewport
+}
+/** 仅选择或规划结果变化时聚焦，轮询和动画不会反复抢占用户的相机。 */
+async function focusSelectedTask() {
+  const request=++focusRequest, task=store.selectedTask
+  if(!renderer || !task?.path?.length) return
+  showRoute.value=true
+  const nodes=task.path.map(id=>store.nodeById[id]).filter(Boolean)
+  const levels=new Set(nodes.map(node=>node.displayFloor).filter(value=>value!=null))
+  floor.value=levels.size===1 && nodes.every(node=>node.displayKind!=='stairs') ? String([...levels][0]):'all'
+  // 等待选中任务卡片、楼层可见性与手机抽屉完成布局后再取景。
+  await nextTick()
+  requestAnimationFrame(()=>{
+    if(dead || request!==focusRequest || store.selectedTaskId!==task.id) return
+    const points=nodes.map(node=>vector(node.position,.4))
+    // 快速切换任务时不复用上一任务的采样段，按当前路径重新取得曲线范围。
+    const segments=highlightTopologyPath(renderer.mapGroups,task.path,mapThemes[ui.preferences.theme].route)
+    points.push(...segments.flatMap(segment=>segment))
+    renderer.focusRoute(points,routeViewport())
+  })
+}
+watch(()=>`${store.sessionId}:${store.selectionVersion}:${store.selectedTaskId}:${store.selectedTask?.path?.join('|')}`,focusSelectedTask,{flush:'post'})
 function drawRobotLabel(canvas, id) {
   const ctx=canvas.getContext('2d'), light=ui.preferences.theme==='light'
   ctx.clearRect(0,0,128,64); ctx.fillStyle=light ? '#ffffff99':'#14213599'; ctx.fillRect(0,0,128,64)
