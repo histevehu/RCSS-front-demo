@@ -1,7 +1,6 @@
 <template>
   <header ref="headerElement" class="workspace-header">
     <div class="brand"><h1>{{ ui.t('appTitle') }}</h1><span>{{ ui.t('liveMode') }}</span></div>
-    <nav :aria-label="ui.t('tasks')" class="view-tabs"><router-link to="/">{{ ui.t('overview') }}</router-link><router-link to="/tasks">{{ ui.t('tasks') }}</router-link></nav>
     <div class="header-controls">
       <span class="connection" :class="{ offline:!store.connected }" :title="connectionText"><i></i><span>{{ connectionText }}</span></span>
       <time>{{ time }}</time>
@@ -31,9 +30,6 @@ onUnmounted(()=>observer?.disconnect())
 <style scoped>
 .workspace-header { position:absolute; inset:0 0 auto; z-index:20; min-height:48px; padding:7px 16px; background:var(--surface);  display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
 .brand { display:flex; flex-direction:column; gap:2px; flex-shrink:0; }.brand h1 { font-size:14px; font-weight:600; }.brand>span { font-size:11px; color:var(--muted); }
-.view-tabs { display:flex; align-items:center; padding:2px; border:0; border-radius:0; gap:2px; }
-.view-tabs a { padding:5px 10px; text-decoration:none; color:var(--muted); border-radius:0; border-bottom:2px solid transparent; white-space:nowrap; }
-.view-tabs a.router-link-exact-active { color:var(--text); background:transparent; border-bottom:2px solid var(--accent); font-weight:600; }
 .header-controls { margin-left:auto; display:flex; gap:6px; align-items:center; }.header-controls button,.header-controls select { height:32px; padding:4px 8px; white-space:nowrap; }
 .connection { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--success); }.connection i { width:6px; height:6px; border-radius:50%; background:currentColor; }.connection.offline { color:var(--danger); }
 time { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; margin:0 3px; }
