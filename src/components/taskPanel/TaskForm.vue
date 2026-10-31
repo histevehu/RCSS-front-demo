@@ -43,6 +43,9 @@
           {{ ui.t(type.value) }}
         </option>
       </select>
+      <p class="capability-info">{{ ui.t('requiredCapability') }}: <strong>{{ ui.capability(requiredCapability) }}</strong></p>
+      <p class="capability-info" :class="{'error-text':requiredCapability && !capableRobots.length}">{{ capableRobots.length ? `${ui.t('capableRobots')}: ${capableRobots.join(', ')}` : ui.t('noCapableRobot') }}</p>
+      <p class="capability-info">{{ ui.t('capabilityHint') }}</p>
     </div>
 
     <div class="form-group">
@@ -81,6 +84,9 @@ const priorities = [
   { value: 'low', class: 'tag-low' },
 ]
 
+// 与后端场景目录共用能力映射，不在表单中另建一套业务规则。
+const requiredCapability = computed(() => store.scene?.taskCapabilities?.[form.taskType])
+const capableRobots = computed(() => store.robots.filter(r => r.capabilities?.includes(requiredCapability.value)).map(r => r.id))
 const taskTypes = [
   { value: 'delivery' },
   { value: 'pickup' },
@@ -112,5 +118,5 @@ async function handleSubmit() {
 </script>
 
 <style scoped>
-.form-container { display:flex; flex-direction:column; gap:12px; }.form-group { display:flex; flex-direction:column; gap:5px; }.form-label { color:var(--muted); font-weight:500; }.form-input,.form-select,.form-textarea { width:100%; padding:9px 10px; font-size:13px; }.form-input::placeholder,.form-textarea::placeholder { color:var(--muted); }.form-textarea { min-height:60px; resize:vertical; }.priority-options { display:flex; gap:16px; }.priority-option { display:flex; align-items:center; gap:5px; cursor:pointer; }.priority-tag { font-size:12px; }.tag-urgent { color:var(--danger); }.tag-normal { color:var(--warning); }.tag-low { color:var(--success); }.form-actions { display:flex; gap:8px; position:sticky; bottom:-1px; background:var(--surface-solid); padding:8px 0 0; }.form-actions>button { flex:1; min-height:38px; }.btn-primary { color:#fff; background:#2563c9; border-color:#2563c9; }
+.capability-info { font-size:12px; line-height:1.6; color:var(--muted); }.capability-info.error-text { color:var(--danger); }.form-container { display:flex; flex-direction:column; gap:12px; }.form-group { display:flex; flex-direction:column; gap:5px; }.form-label { color:var(--muted); font-weight:500; }.form-input,.form-select,.form-textarea { width:100%; padding:9px 10px; font-size:13px; }.form-input::placeholder,.form-textarea::placeholder { color:var(--muted); }.form-textarea { min-height:60px; resize:vertical; }.priority-options { display:flex; gap:16px; }.priority-option { display:flex; align-items:center; gap:5px; cursor:pointer; }.priority-tag { font-size:12px; }.tag-urgent { color:var(--danger); }.tag-normal { color:var(--warning); }.tag-low { color:var(--success); }.form-actions { display:flex; gap:8px; position:sticky; bottom:-1px; background:var(--surface-solid); padding:8px 0 0; }.form-actions>button { flex:1; min-height:38px; }.btn-primary { color:#fff; background:#2563c9; border-color:#2563c9; }
 </style>

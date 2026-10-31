@@ -80,3 +80,10 @@ Drag to orbit, right-drag to pan freely along a horizontal plane, and scroll to 
 Robots and navigation markers use translucent materials so overlapping objects are easier to distinguish. Selecting a task recolours its existing topology edges to solid bright yellow in both themes, preserving their original shape and thickness. No translucent overlay or glow tube is added; deselection restores the original edge colours. Click/tap the map away from the highlighted route to deselect its task; route clicks, camera drags, right-drag panning and multi-touch gestures retain the selection. Sidebar and toolbar controls do not deselect tasks.
 
 Selecting a task automatically frames its complete highlighted route in the unobscured map area. The camera compares multiple safe overhead directions and chooses a close-fitting view, accounting for side panels, header and bottom tools. Same-floor routes select that floor; cross-floor routes show All Floors. On phones, selecting an order closes the task drawer so the full route is visible. Newly assigned orders focus once their planned path is available, and reselecting the same order refocuses after manual navigation. Polling and theme changes do not repeatedly move the camera; free pan, orbit and pointer-centred zoom remain available after focusing.
+
+
+### Capability-based demo allocation
+
+Task type now derives its required capability from the backend scene catalogue. The order form shows that requirement and the currently capable robots; this is eligibility, not a promise of allocation. The robot roster and map hover show each robot's supported capabilities. Expanded selected-task details show the requirement, assignment-time capabilities and the real matching result. These virtual profiles do not describe physical robot models.
+
+Delivery: R1/R2/R7; Pickup: R3/R4/R7; Sample: R5/R8; Document: R6/R8. Other requires Special operation, which no demo robot currently supports: submitting it demonstrates a failed allocation with NO_CAPABLE_ROBOT. Retry retains the same requirement. UI names follow the selected language; event logs remain English. Explicit API capability overrides must match task type.

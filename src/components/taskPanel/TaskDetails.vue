@@ -4,6 +4,11 @@
     <div class="field-row"><span>{{ ui.t('status') }}</span><span :class="`status-${task.status}`">{{ ui.t(task.status) }}</span></div>
     <div class="field-row"><span>{{ ui.t('robot') }}</span><span>{{ task.robotId || ui.t('unassigned') }}</span></div>
     <div class="field-row"><span>{{ ui.t('taskType') }}</span><span>{{ ui.t(task.taskType) }}</span></div>
+    <div class="field-row"><span>{{ ui.t('requiredCapability') }}</span><span>{{ ui.capability(task.capability) }}</span></div>
+    <template v-if="task.robotId">
+      <div class="field-row"><span>{{ ui.t('supportedCapabilities') }}</span><span>{{ (task.robotCapabilities || []).map(ui.capability).join(' · ') || ui.t('unknownCapability') }}</span></div>
+      <div class="field-row"><span>{{ ui.t('capabilityMatch') }}</span><span :class="task.capabilityMatched===true ? 'status-completed':'error-text'">{{ ui.t(task.capabilityMatched===true ? 'matched':task.capabilityMatched===false ? 'mismatched':'unknownCapability') }}</span></div>
+    </template>
     <template v-if="task.scheduleStage==='assigned'">
       <div class="field-row"><span>{{ ui.t('plannedStart') }}</span><span>{{ ui.time(task.startTime,store.clock.epoch) }}</span></div>
       <div class="field-row"><span>{{ ui.t('execution') }}</span><span>{{ ui.duration(task.estimatedTime) }}</span></div>

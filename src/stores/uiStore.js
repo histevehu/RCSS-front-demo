@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive, watch } from 'vue'
-import { durationLabel, errorLabel, publicText, readPreferences, taskReason, translate, preferenceKey } from '../utils/presentation.js'
+import { capabilityLabel, durationLabel, errorLabel, publicText, readPreferences, taskReason, translate, preferenceKey } from '../utils/presentation.js'
 
 export const useUiStore = defineStore('ui', () => {
   let storage
@@ -14,6 +14,7 @@ export const useUiStore = defineStore('ui', () => {
       document.title = translate(value.locale, 'appTitle')
     }
   }, { deep:true, immediate:true, flush:'sync' })
+  const capability = code => capabilityLabel(code, preferences.locale)
   const t = key => translate(preferences.locale,key)
   const duration = value => durationLabel(value,preferences.locale)
   const display = value => publicText(value,preferences.locale)
@@ -21,5 +22,5 @@ export const useUiStore = defineStore('ui', () => {
   const reason = task => taskReason(task,preferences.locale)
   const time = (seconds, epoch) => seconds == null ? '—' : new Date((epoch + seconds) * 1000).toLocaleTimeString(preferences.locale,{timeZone:'Asia/Shanghai',hour12:false})
   function toggleFold(key) { preferences.folds[key] = !preferences.folds[key] }
-  return { preferences, t, duration, display, errorText, reason, time, toggleFold }
+  return { preferences, capability, t, duration, display, errorText, reason, time, toggleFold }
 })

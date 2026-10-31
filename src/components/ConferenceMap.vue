@@ -67,6 +67,7 @@ const tooltip = computed(() => {
   const location = store.robotLocation(robot)
   const task = store.tasks.find(t => t.id === location.taskId)
   return {title:`${ui.t('robot')} ${robot.id}`, rows:[[ui.t('status'), ui.t(robot.status)],
+    [ui.t('supportedCapabilities'), (robot.capabilities || []).map(ui.capability).join(', ') || ui.t('unknownCapability')],
     [ui.t('location'), ui.display(location.floorLabel)],
     [ui.t(location.inTransit ? 'moving':'atNode'), ui.display(location.nodeText)],
     [ui.t('task'), task ? `${task.id} · ${task.name}` : ui.t('none')],

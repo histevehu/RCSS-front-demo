@@ -72,3 +72,10 @@ test('reselecting the same task emits a new camera focus request without changin
   assert.equal(store.selectedTaskId,'T001')
   assert.equal(store.selectionVersion,version+1)
 })
+
+test('capability names are localized without exposing unknown internal codes',async()=>{
+  const {capabilityLabel}=await import('../src/utils/presentation.js')
+  assert.equal(capabilityLabel('demo_sample','zh-CN'),'样本运输')
+  assert.equal(capabilityLabel('demo_document','en-US'),'Document transport')
+  assert.equal(capabilityLabel('private-code','zh-CN'),'能力信息不可用')
+})
