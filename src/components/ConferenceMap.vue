@@ -132,6 +132,7 @@ async function initialize() {
       return { ...m, waypoints: m.waypoints.map(wp => ({ ...wp, connections: wp.connections
         .filter(c => scene.maps.find(tm => tm.mapName === c.map_name)?.waypoints.some(tw => tw.code === c.target_node))
         .map(c => ({ mapName: c.map_name, waypointCode: c.target_node, reverse: c.reverse })) })).map(wp => ({...wp, displayKind:store.nodeById[wp.nodeId]?.displayKind,
+          displayLabel:store.nodeById[wp.nodeId]?.displayKind==='stairs' ? store.nodeById[wp.nodeId]?.displayCode : store.formatLocation(wp.nodeId),
           renderMarker:store.nodeById[wp.nodeId]?.isLocationRepresentative === true})).map(wp => ({...wp, markerColor:waypointColor(wp)})),
         mapConfig: { resolution: config.resolution, origin: config.origin },
         pgmWidth: pgm.width, pgmHeight: pgm.height, pgmPixels: pgm.pixels,
@@ -193,10 +194,10 @@ async function focusSelectedTask() {
   })
 }
 watch(()=>`${store.sessionId}:${store.selectionVersion}:${store.selectedTaskId}:${store.selectedTask?.path?.join('|')}`,focusSelectedTask,{flush:'post'})
-function drawRobotLabel(canvas, id) {
+function drawRobotLabel(canvas, id, status) {
   const ctx=canvas.getContext('2d'), light=ui.preferences.theme==='light'
   ctx.clearRect(0,0,128,64); ctx.fillStyle=light ? '#ffffff99':'#14213599'; ctx.fillRect(0,0,128,64)
-  ctx.fillStyle=light ? '#172b41':'#e0eaf4'; ctx.font='bold 32px Arial'; ctx.textAlign='center'; ctx.fillText(id,64,43)
+  ctx.fillStyle=`#${robotColor(ui.preferences.theme,status).toString(16).padStart(6,'0')}`; ctx.font='bold 32px Arial'; ctx.textAlign='center'; ctx.fillText(id,64,43)
 }
 function makeRobot(id) {
   const mesh = new THREE.Group()
@@ -212,7 +213,8 @@ function makeRobot(id) {
   front.rotation.x = Math.PI / 2; front.position.z = .5; mesh.add(front)
   const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 64
   drawRobotLabel(canvas, id)
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), depthTest: false, depthWrite:false }))
+  const texture=new THREE.CanvasTexture(canvas); texture.colorSpace=THREE.SRGBColorSpace
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map:texture, depthTest: false, depthWrite:false, toneMapped:false }))
   label.renderOrder=1102
   label.name='robot-label'; label.scale.set(2, 1, 1); label.position.y = 1.4; mesh.add(label)
   mesh.userData.robotId = id
@@ -236,6 +238,11 @@ function updateFrame() {
     // 状态驱动颜色，不按选中样式伪装执行状态；复用现有材质。
     const body=mesh.getObjectByName('robot-body'), color=robotColor(ui.preferences.theme,robot.status)
     body.material.color.set(color); body.material.emissive.set(color)
+    const label=mesh.getObjectByName('robot-label'), labelKey=`${robot.status}:${ui.preferences.theme}`
+    if(label.userData.labelKey!==labelKey) {
+      drawRobotLabel(label.material.map.image,robot.id,robot.status)
+      label.material.map.needsUpdate=true; label.userData.labelKey=labelKey
+    }
     mesh.visible = robotIsVisible(showRobots.value,robot.id,store.selectedTask?.robotId,floor.value,store.robotFloor(robot,now))
   }
   if (pointerPosition && performance.now() - lastPick > 100) { lastPick = performance.now(); pickTarget() }
@@ -279,7 +286,7 @@ watch(()=>ui.preferences.theme,theme=>{
   renderer?.setTheme(theme)
   for(const [id,mesh] of meshes) {
     const texture=mesh.getObjectByName('robot-label')?.material.map
-    if(texture) { drawRobotLabel(texture.image,id); texture.needsUpdate=true }
+    if(texture) { drawRobotLabel(texture.image,id,store.robots.find(r=>r.id===id)?.status); texture.needsUpdate=true }
   }
 })
 onMounted(initialize)

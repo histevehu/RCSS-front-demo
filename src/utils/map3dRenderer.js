@@ -4,6 +4,7 @@
 
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { createWaypointLabel, paintMapLabel, sizeWaypointLabel, layoutWaypointLabels } from './mapLabels.js'
 import { mapThemes } from './mapTheme.js'
 import { configureMapControls, discardControlMomentum } from './mapCamera.js'
 import { fitRouteCamera } from './routeCamera.js'
@@ -105,6 +106,11 @@ export class Map3DRenderer {
     }
     colors.needsUpdate=true
     this.scene.traverse(object=>{
+      if(object.name === 'waypoint-label') {
+        const role=object.userData.labelRole
+        paintMapLabel(object.material.map.image,object.userData.labelText,mapThemes[theme][role],theme)
+        object.material.map.needsUpdate=true
+      }
       const color=mapThemes[theme][object.userData.themeRole]
       if(color !== undefined && object.material?.color) {
         object.material.color.set(color)
@@ -156,6 +162,7 @@ export class Map3DRenderer {
     this.animationId = requestAnimationFrame(() => this.animate())
     this.onFrame?.()
     this.controls.update()
+    layoutWaypointLabels(this.mapGroups,this.camera,this.container.clientWidth,this.container.clientHeight)
     this.renderer.render(this.scene, this.camera)
   }
 
@@ -658,6 +665,15 @@ export class Map3DRenderer {
     ring.position.y = 0.55
     ring.rotation.x = Math.PI / 2
     markerGroup.add(ring)
+
+    // 仅使用用户地点名；共享地点随规范标记只绘制一次，隐藏楼层也同时隐藏标签。
+    if (wp.displayLabel) {
+      const role=wp.displayKind === 'stairs' ? 'stair':'node'
+      const label=createWaypointLabel(wp.displayLabel,mapThemes[this.theme || 'light'][role],this.theme || 'light')
+      label.userData.labelRole=role
+      sizeWaypointLabel(label,this.camera,this.container.clientHeight)
+      markerGroup.add(label)
+    }
 
     // 方向箭头
     if (wp.heading !== undefined) {

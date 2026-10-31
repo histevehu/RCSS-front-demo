@@ -90,3 +90,6 @@ Delivery: R1/R2/R7; Pickup: R3/R4/R7; Sample: R5/R8; Document: R6/R8. Other requ
 
 
 Map navigation allows a 5°–75° polar-angle range (15°–85° elevation), closer overhead inspection and a wider zoom-out range. Camera height is protected dynamically at the current angle rather than reserving distance for the shallowest angle. Horizontal panning and cursor-centred zoom remain free. Pale translucent architecture and a quiet grid give priority to navigation points, topology, yellow planned routes and robot state. Hiding Robots hides unselected robots; the robot assigned to the selected task remains visible on its visible floor, including for queued or completed tasks. Deselecting returns to the global visibility setting. Red indicates actual execution state, not merely selection.
+
+
+Navigation markers show user-facing labels (Floor · Point; S1–S5 on stairs). Label text uses the same node/stair colours as the legend and updates with the theme. Shared locations have one label. Labels maintain a readable screen size; overlapping text is suppressed when zoomed out and recovers automatically when zoomed in, without hiding the marker itself. Robot label text follows the blue idle / red executing colours. Floor visibility also hides its labels.
