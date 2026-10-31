@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { PerspectiveCamera, Vector3 } from 'three'
-import { fitRouteCamera } from '../src/utils/routeCamera.js'
+import { fitRouteCamera, isRouteInView } from '../src/utils/routeCamera.js'
 
 for(const view of [
   {width:1440,height:1000,left:380,right:1060,top:80,bottom:900},
@@ -37,4 +37,35 @@ test('a short same-floor route receives a closer pose than a long route',()=>{
   const near=fitRouteCamera(camera,[new Vector3(0,.4,0),new Vector3(2,.4,0)],viewport,4.3)
   const far=fitRouteCamera(camera,[new Vector3(0,.4,0),new Vector3(80,.4,0)],viewport,4.3)
   assert.ok(near.distance<far.distance)
+})
+
+
+test('route visibility checks the unobscured viewport, depth and intermediate samples',()=>{
+  const camera=new PerspectiveCamera(60,1,.1,100)
+  camera.position.set(0,0,10);camera.lookAt(0,0,0)
+  const viewport={width:1000,height:1000,left:200,right:800,top:100,bottom:850}
+  const pose=camera.position.clone(),rotation=camera.quaternion.clone()
+  assert.equal(isRouteInView(camera,[new Vector3(-1,0,0),new Vector3(1,0,0)],viewport),true)
+  // 可在画布内，但被左侧面板覆盖；曲线中间点越界也不能只检查端点。
+  assert.equal(isRouteInView(camera,[new Vector3(-4,0,0)],viewport),false)
+  assert.equal(isRouteInView(camera,[new Vector3(0,0,0),new Vector3(8,0,0),new Vector3(1,0,0)],viewport),false)
+  assert.equal(isRouteInView(camera,[new Vector3(0,0,20)],viewport),false)
+  assert.equal(isRouteInView(camera,[new Vector3(0,0,-200)],viewport),false)
+  assert.equal(isRouteInView(camera,[],viewport),false)
+  assert.deepEqual(camera.position,pose);assert.deepEqual(camera.quaternion.toArray(),rotation.toArray())
+})
+
+
+test('renderer leaves an already visible route alone and only requests framing outside it',async()=>{
+  const {Map3DRenderer}=await import('../src/utils/map3dRenderer.js')
+  const renderer=Object.create(Map3DRenderer.prototype)
+  renderer.camera=new PerspectiveCamera(60,1,.1,100)
+  renderer.camera.position.set(0,0,10);renderer.camera.lookAt(0,0,0)
+  let calls=0
+  renderer.getVisibleBounds=()=>{calls++;return null}
+  const viewport={width:1000,height:1000,left:100,right:900,top:100,bottom:900}
+  renderer.focusRoute([new Vector3(0,0,0)],viewport)
+  assert.equal(calls,0)
+  renderer.focusRoute([new Vector3(20,0,0)],viewport)
+  assert.equal(calls,1)
 })

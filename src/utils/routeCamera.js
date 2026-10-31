@@ -1,5 +1,21 @@
 import { Box3, MathUtils, Vector3 } from 'three'
 
+/** 判断整条采样轨迹是否位于无遮挡视口内；不改变相机位置、朝向或控制器。 */
+export function isRouteInView(camera, points, viewport, margin = 12) {
+  if (!points.length || viewport.width <= 0 || viewport.height <= 0) return false
+  const left = viewport.left + margin, right = viewport.right - margin
+  const top = viewport.top + margin, bottom = viewport.bottom - margin
+  if (left >= right || top >= bottom) return false
+  camera.updateMatrixWorld()
+  return points.every(point => {
+    const projected = point.clone().project(camera)
+    if (![projected.x, projected.y, projected.z].every(Number.isFinite) || projected.z < -1 || projected.z > 1) return false
+    const x = (projected.x + 1) * viewport.width / 2
+    const y = (1 - projected.y) * viewport.height / 2
+    return x >= left && x <= right && y >= top && y <= bottom
+  })
+}
+
 /**
  * 按路线世界坐标和无遮挡像素视口计算最近的完整取景；不修改输入相机。
  * 对多个俯视方向逐点计算透视约束，兼顾跨楼层深度与非对称侧栏。

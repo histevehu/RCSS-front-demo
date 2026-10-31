@@ -7,7 +7,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { createWaypointLabel, paintMapLabel, sizeWaypointLabel, layoutWaypointLabels } from './mapLabels.js'
 import { mapThemes } from './mapTheme.js'
 import { configureMapControls, discardControlMomentum } from './mapCamera.js'
-import { fitRouteCamera } from './routeCamera.js'
+import { fitRouteCamera, isRouteInView } from './routeCamera.js'
 
 // 常量配置
 const Z_SCALE = 3 // 楼层高度缩放
@@ -882,6 +882,8 @@ export class Map3DRenderer {
 
   /** 按完整路线聚焦到无遮挡视口，保留鼠标中心缩放、自由平移和俯视保护。 */
   focusRoute(points, viewport) {
+    // 已能完整看清路线时保留用户视角，也不清除正在进行的导航状态。
+    if (isRouteInView(this.camera,points,viewport)) return
     const bounds = this.getVisibleBounds()
     if (!bounds) return
     const pose = fitRouteCamera(this.camera, points, viewport, bounds.max.y + 2)

@@ -181,7 +181,9 @@ async function focusSelectedTask() {
   showRoute.value=true
   const nodes=task.path.map(id=>store.nodeById[id]).filter(Boolean)
   const levels=new Set(nodes.map(node=>node.displayFloor).filter(value=>value!=null))
-  floor.value=levels.size===1 && nodes.every(node=>node.displayKind!=='stairs') ? String([...levels][0]):'all'
+  // 当前楼层已包含路线时保持楼层与相机；只有路线被楼层过滤隐藏才切换。
+  const singleFloor=levels.size===1 && nodes.every(node=>node.displayKind!=='stairs') ? String([...levels][0]):null
+  if(floor.value!=='all' && floor.value!==singleFloor) floor.value=singleFloor || 'all'
   // 等待选中任务卡片、楼层可见性与手机抽屉完成布局后再取景。
   await nextTick()
   requestAnimationFrame(()=>{
