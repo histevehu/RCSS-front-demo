@@ -2,7 +2,7 @@ import { formatDuration } from './demo.js'
 
 export const messages = {
   'zh-CN': {
-    appTitle:'机器人任务调度中心', overview:'总览', tasks:'任务', liveMode:'实时调度 · 模拟执行',
+    taskOverview:'任务概览', taskRecords:'任务记录', details:'详情', clearSelection:'取消选择任务', emptyRecordsHint:'新建任务后，可在这里查看调度与执行状态。', appTitle:'机器人任务调度中心', overview:'总览', tasks:'任务', liveMode:'实时调度 · 模拟执行',
     connected:'已连接', disconnected:'连接中断', paused:'已暂停', pause:'暂停', resume:'继续', speed:'演示倍速', reset:'重置演示',
     language:'界面语言', theme:'界面主题', light:'浅色', dark:'深色', focus:'专注地图', exitFocus:'退出专注',
     expand:'展开', collapse:'折叠', close:'关闭', taskArea:'任务区', robotArea:'机器人区', hideLeft:'收起任务区', showLeft:'展开任务区', hideRight:'收起机器人区', showRight:'展开机器人区',
@@ -25,7 +25,7 @@ export const messages = {
     MAP_NOT_ALLOWED:'机器人无法进入目标地点', NODE_NOT_FOUND:'所选地点不可用', PATH_UNREACHABLE:'起终点之间没有可达路径', NO_FEASIBLE_ROBOT:'当前没有可执行此任务的机器人', SCHEDULE_FAILED:'调度失败，请重试',
   },
   'en-US': {
-    appTitle:'Robot Task Dispatch Center', overview:'Overview', tasks:'Tasks', liveMode:'Live Scheduling · Simulated Execution',
+    taskOverview:'Task overview', taskRecords:'Task records', details:'Details', clearSelection:'Clear selected task', emptyRecordsHint:'Create an order to follow its allocation and execution here.', appTitle:'Robot Task Dispatch Center', overview:'Overview', tasks:'Tasks', liveMode:'Live Scheduling · Simulated Execution',
     connected:'Connected', disconnected:'Disconnected', paused:'Paused', pause:'Pause', resume:'Resume', speed:'Demo speed', reset:'Reset Demo',
     language:'Interface language', theme:'Interface theme', light:'Light', dark:'Dark', focus:'Focus map', exitFocus:'Exit focus',
     expand:'Expand', collapse:'Collapse', close:'Close', taskArea:'Task area', robotArea:'Robot area', hideLeft:'Hide task area', showLeft:'Show task area', hideRight:'Hide robot area', showRight:'Show robot area',

@@ -165,6 +165,8 @@ function routeViewport() {
     else if(panel.classList.contains('left-rail') || panel.classList.contains('collapsed-left') || panel.classList.contains('left-toggle')) viewport.left=Math.max(viewport.left,box.right-rect.left+20)
     else viewport.right=Math.min(viewport.right,box.left-rect.left-20)
   }
+  const inspector=workspace.querySelector('.task-inspector')
+  if(visible(inspector)) viewport.bottom=Math.min(viewport.bottom,inspector.getBoundingClientRect().top-rect.top-24)
   const tools=workspace.querySelector('.map-tools')
   if(visible(tools)) viewport.bottom=Math.min(viewport.bottom,tools.getBoundingClientRect().top-rect.top-24)
   return viewport
@@ -290,16 +292,16 @@ onUnmounted(() => {
 <style scoped>
 .conference-map,.map-canvas { position:absolute; inset:0; }
 .map-message { position:absolute; inset:0; display:flex; gap:16px; align-items:center; justify-content:center; background:var(--bg); color:var(--text); }
-.map-tools { position:absolute; z-index:11; bottom:12px; left:var(--left-space,320px); right:var(--right-space,320px); display:flex; justify-content:center; gap:6px; align-items:center; flex-wrap:wrap; pointer-events:none; }
-.map-tools>* { pointer-events:auto; box-shadow:var(--shadow); background:var(--surface); font-size:11px; }
+.map-tools { position:absolute; z-index:15; bottom:16px; left:var(--left-space,320px); right:var(--right-space,320px); display:flex; justify-content:center; gap:6px; align-items:center; flex-wrap:wrap; pointer-events:none; }
+.map-tools>* { pointer-events:auto; background:var(--surface); font-size:12px; }
 .map-tools select,.map-tools button,.tool-menu>summary { height:34px; padding:7px 9px; white-space:nowrap; }
 .tool-menu { position:relative; border-radius:6px; border:1px solid var(--border); }
 .tool-menu>summary { cursor:pointer; list-style:none; }
 .tool-menu[open]>summary { color:var(--accent); background:var(--accent-soft); border-radius:6px; }
 .tool-popover { position:absolute; bottom:calc(100% + 8px); right:0; border:1px solid var(--border); border-radius:8px; background:var(--surface-solid); box-shadow:var(--shadow); padding:12px; color:var(--text); }
 .object-options { display:flex; flex-direction:column; gap:10px; min-width:140px; }.object-options label { display:flex; align-items:center; gap:7px; }
-.legend-content { width:238px; }.legend-content>div { display:flex; gap:8px; align-items:center; margin-top:7px; }.legend-content i { display:inline-block; width:9px; height:9px; flex-shrink:0; border-radius:50%; }.legend-content small { display:block; margin-top:10px; color:var(--muted); font-size:10px; line-height:1.6; }
+.legend-content { width:238px; }.legend-content>div { display:flex; gap:8px; align-items:center; margin-top:7px; }.legend-content i { display:inline-block; width:9px; height:9px; flex-shrink:0; border-radius:50%; }.legend-content small { display:block; margin-top:10px; color:var(--muted); font-size:11px; line-height:1.6; }
 .legend-node { background:var(--map-node); }.legend-portal { background:var(--map-stair); }.legend-content .legend-robot { border-radius:2px; background:var(--map-robot); }.legend-content .legend-route { height:3px; background:var(--map-route); border-radius:0; }.legend-start { background:var(--map-route); }.legend-end { background:var(--map-end); }
 .map-tooltip { position:absolute; z-index:30; pointer-events:none; width:248px; max-width:calc(100% - 16px); padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--surface-solid); box-shadow:var(--shadow); color:var(--text); font-size:11px; }.map-tooltip strong { font-size:13px; }.map-tooltip dl { display:grid; grid-template-columns:80px minmax(0,1fr); gap:6px 8px; margin-top:8px; }.map-tooltip dt { color:var(--muted); }.map-tooltip dd { margin:0; overflow-wrap:anywhere; }
-@media(max-width:800px) { .map-tools { bottom:60px; left:8px; right:8px; gap:5px; }.map-tools select,.map-tools button,.tool-menu>summary { min-height:36px; padding:8px; }.map-legend .tool-popover { right:0; }.legend-content { max-width:calc(100vw - 20px); } }
+@media(max-width:800px) { .map-tools { bottom:68px; left:16px; right:16px; gap:5px; }.map-tools select,.map-tools button,.tool-menu>summary { min-height:36px; padding:8px 6px; }.map-legend .tool-popover { right:0; }.legend-content { max-width:calc(100vw - 20px); } }
 </style>

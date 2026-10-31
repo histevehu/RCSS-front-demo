@@ -11,5 +11,5 @@ import { useUiStore } from '../../stores/uiStore'
 const store=useAppStore(),ui=useUiStore()
 </script>
 <style scoped>
-.queue-list { display:flex; flex-direction:column; gap:6px; }.queue-item { padding:8px; text-align:left; background:var(--subtle); border:0; width:100%; }.queue-item>div { display:flex; gap:6px; justify-content:space-between; }.queue-item strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }.queue-item p { font-size:10px; line-height:1.7; color:var(--muted); }.queue-item .route-text { color:var(--accent); }.queue-time { color:var(--muted); margin-top:3px; font-size:10px; flex-wrap:wrap; }
+.queue-list { display:flex; flex-direction:column; gap:6px; }.queue-item { padding:8px; text-align:left; background:var(--subtle); border:0; width:100%; }.queue-item>div { display:flex; gap:6px; justify-content:space-between; }.queue-item strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }.queue-item p { font-size:11px; line-height:1.7; color:var(--muted); }.queue-item .route-text { color:var(--accent); }.queue-time { color:var(--muted); margin-top:3px; font-size:11px; flex-wrap:wrap; }
 </style>
