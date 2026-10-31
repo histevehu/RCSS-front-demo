@@ -9,11 +9,11 @@
     </nav>
     <aside v-show="leftVisible" class="workspace-rail left-rail" :aria-label="ui.t('taskArea')" @wheel.stop>
       <CollapsiblePanel panel-id="summary" :title="ui.t('taskOverview')" :badge="store.stats.total">
-        <div class="task-counts"><button v-for="status in ['executing','waiting','completed']" :key="status" :class="[`status-${status}`,{active:filter===status}]" :aria-pressed="filter===status" @click="filterTasks(status)"><strong>{{ store.stats[status] }}</strong><span>{{ ui.t(status) }}</span></button></div>
+        <div class="task-counts"><button v-for="status in statusFilters" :key="status" :class="[`status-${status}`,{active:filter===status}]" :aria-pressed="filter===status" @click="filterTasks(status)"><strong>{{ status==='all' ? store.stats.total:store.stats[status] }}</strong><span>{{ ui.t(`filter_${status}`) }}</span></button></div>
         <div class="completion-strip"><span>{{ ui.t('completionRate') }}</span><progress :value="store.stats.completionRate" max="100" :aria-label="ui.t('completionRate')"></progress><strong>{{ store.stats.completionRate }}%</strong></div>
-        <div class="session-metrics"><div><strong>{{ store.stats.total }}</strong><span>{{ ui.t('sessionTotal') }}</span></div><div><strong>{{ ui.duration(store.snapshot?.stats.avgCompletionSeconds) }}</strong><span>{{ ui.t('avgCompletion') }}</span></div><button :class="{active:filter==='failed'}" :aria-pressed="filter==='failed'" @click="filterTasks('failed')"><strong>{{ store.stats.failed }}</strong><span>{{ ui.t('failedScheduling') }}</span></button></div>
+        <div class="summary-duration"><span>{{ ui.t('avgCompletion') }}</span><strong>{{ ui.duration(store.snapshot?.stats.avgCompletionSeconds) }}</strong></div>
       </CollapsiblePanel>
-      <CollapsiblePanel panel-id="list" :title="ui.t('taskRecords')" :badge="store.stats.total">
+      <CollapsiblePanel panel-id="list" :title="ui.t('taskRecords')">
         <div class="task-actions"><button @click="showGantt=true">{{ ui.t('timeline') }}</button><button @click="showLogs=true">{{ ui.t('logs') }}</button></div>
         <TaskList :initial-filter="filter" />
       </CollapsiblePanel>
@@ -37,7 +37,7 @@ import { computed,ref,onMounted,onUnmounted,watch } from 'vue'
 import { useRoute,useRouter } from 'vue-router'
 import { useAppStore } from '../stores/appStore'
 import { useUiStore } from '../stores/uiStore'
-import { normalizeTaskFilter } from '../utils/taskFilters.js'
+import { normalizeTaskFilter, statusFilters } from '../utils/taskFilters.js'
 import Header from '../components/common/Header.vue'
 import Modal from '../components/common/Modal.vue'
 import CollapsiblePanel from '../components/common/CollapsiblePanel.vue'
@@ -89,7 +89,7 @@ onUnmounted(()=>media.removeEventListener('change',resized))
 </script>
 <style scoped>
 /* 两侧使用同一固定边界；记录和机器人列表负责自己的滚动，不滚动整栏。 */
-.workspace { --rail-width:280px; --rail-gap:16px; --left-space:calc(var(--rail-width) + 48px); --right-space:calc(var(--rail-width) + 48px); --summary-row:196px; --records-row:minmax(0,1fr); position:relative; width:100%; height:100%; }
+.workspace { --rail-width:280px; --rail-gap:16px; --left-space:calc(var(--rail-width) + 48px); --right-space:calc(var(--rail-width) + 48px); --summary-row:160px; --records-row:minmax(0,1fr); position:relative; width:100%; height:100%; }
 .workspace.summary-folded { --summary-row:42px; }.workspace.records-folded { --records-row:42px; }
 .workspace.left-hidden { --left-space:192px; }.workspace.right-hidden { --right-space:192px; }
 .workspace-rail { position:absolute; z-index:10; top:calc(var(--header-height) + 16px); bottom:72px; width:var(--rail-width); min-height:0; overflow:hidden; }
@@ -105,18 +105,18 @@ onUnmounted(()=>media.removeEventListener('change',resized))
 /* 概览保持紧凑且字号可读，把固定侧栏高度优先留给任务记录。 */
 .left-rail :deep([data-panel="summary"]>.panel-body) { padding:8px 12px; }
 .left-rail :deep([data-panel="summary"] .panel-heading) { min-height:36px; padding:6px 12px; }
-.task-counts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin-bottom:6px; }
+.task-counts { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); margin-bottom:8px; }
 .task-counts button { border:0; border-radius:4px; background:transparent; padding:3px 2px; display:flex; flex-direction:column; gap:2px; align-items:center; }
-.task-counts button.active,.session-metrics button.active { background:var(--accent-soft); }.task-counts button:hover { background:var(--subtle); }
+.task-counts button.active { background:var(--accent-soft); }.task-counts button:hover { background:var(--subtle); }
 .task-counts strong { font-size:20px; font-weight:600; line-height:1.1; }.task-counts span { font-size:11px; color:var(--muted); }
 .completion-strip { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--muted); min-height:18px; }.completion-strip>span { flex:none; }.completion-strip progress { flex:1; width:0; height:3px; }.completion-strip strong { color:var(--success); font-size:12px; font-weight:500; }
-.session-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; border-top:1px solid var(--border); padding-top:6px; margin-top:6px; }.session-metrics>div,.session-metrics>button { display:flex; flex-direction:column; align-items:center; text-align:center; gap:2px; padding:0 2px; background:transparent; border:0; }.session-metrics strong { font-size:14px; font-weight:600; }.session-metrics span { font-size:11px; line-height:1.4; color:var(--muted); }.session-metrics button strong { color:var(--danger); }
+.summary-duration { display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--border); padding-top:6px; margin-top:6px; font-size:12px; line-height:18px; color:var(--muted); }.summary-duration strong { font-size:14px; font-weight:600; color:var(--text); white-space:nowrap; }
 .left-dock { position:absolute; z-index:12; left:16px; bottom:16px; width:var(--rail-width); }.new-task-button { width:100%; height:40px; }.left-hidden .left-dock { width:160px; }
 .task-actions { display:flex; gap:8px; padding:10px 12px 0; flex:none; }.task-actions button { flex:1; font-size:11px; min-height:32px; }
 .mobile-drawers { display:none; }
 @media(min-width:801px) and (max-width:1199px) { .workspace { --rail-width:250px; } }
 @media(max-width:800px) {
- .workspace,.workspace.left-hidden,.workspace.right-hidden { --left-space:16px; --right-space:16px; --summary-row:196px; }
+ .workspace,.workspace.left-hidden,.workspace.right-hidden { --left-space:16px; --right-space:16px; --summary-row:160px; }
  .workspace.summary-folded { --summary-row:44px; }
  .workspace-rail { inset:auto 16px 116px; width:auto; height:min(650px,calc(100dvh - var(--header-height) - 148px)); }
  .right-rail { bottom:116px; }.left-rail { gap:8px; }
@@ -125,6 +125,6 @@ onUnmounted(()=>media.removeEventListener('change',resized))
  .mobile-drawers { position:absolute; bottom:16px; right:16px; display:flex; gap:6px; z-index:12; }.mobile-drawers button { height:44px; background:var(--surface); padding:5px 10px; }
  .task-counts button { min-height:44px; }
 }
-@media(max-height:700px) and (min-width:801px) { .workspace { --summary-row:196px; }.workspace.summary-folded { --summary-row:42px; } }
+@media(max-height:700px) and (min-width:801px) { .workspace { --summary-row:160px; }.workspace.summary-folded { --summary-row:42px; } }
 @media(prefers-reduced-motion:no-preference) { .new-task-button { transition:background .15s; }.new-task-button:active { transform:translateY(1px); } }
 </style>
