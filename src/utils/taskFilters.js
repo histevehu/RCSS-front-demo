@@ -14,11 +14,13 @@ export function readTaskCriteria(query) {
   return {period:['hour','today','range'].includes(query.period) ? query.period:'all',
     robot:typeof query.robot==='string' && /^R\d+$/.test(query.robot) ? query.robot:'',
     taskType:taskTypes.includes(query.taskType) ? query.taskType:'',
+    destinationFloor:['4','5'].includes(query.destinationFloor) ? query.destinationFloor:'',
+    destinationLocation:typeof query.destinationLocation==='string' && /^(4F:P([1-9]|1[01])|5F:P[1-5])$/.test(query.destinationLocation) ? query.destinationLocation:'',
     from:validDate(query.from),to:validDate(query.to)}
 }
 
 /** 按创建时间筛选；日期范围采用业务时区 Asia/Shanghai，结束日期包含整天。 */
-export function filterTaskRecords(tasks, criteria, now) {
+export function filterTaskRecords(tasks, criteria, now, nodeById = {}) {
   let from=-Infinity,to=Infinity
   if(criteria.period==='hour') {from=now-3600000;to=now}
   if(criteria.period==='today') {
@@ -30,6 +32,9 @@ export function filterTaskRecords(tasks, criteria, now) {
     if(criteria.to) to=Date.parse(`${criteria.to}T00:00:00+08:00`)+86400000
   }
   return tasks.filter(task=>{
+    const destination=nodeById[task.routeNodes?.at(-1)]
+    if(criteria.destinationFloor && String(destination?.displayFloor)!==criteria.destinationFloor) return false
+    if(criteria.destinationLocation && destination?.locationId!==criteria.destinationLocation) return false
     if(criteria.robot && task.robotId!==criteria.robot) return false
     if(criteria.taskType && task.taskType!==criteria.taskType) return false
     if(criteria.period==='all') return true

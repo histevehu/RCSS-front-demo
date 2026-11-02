@@ -17,7 +17,19 @@ test('record conditions intersect robot, type and creation time',()=>{
  assert.deepEqual(ids({robot:'R1'}),['a','c','e'])
 })
 test('invalid URL dates and values are discarded; open ranges and reversed ranges are safe',()=>{
- assert.deepEqual(readTaskCriteria({period:'bad',robot:['R1'],taskType:'private',from:'2026-02-31',to:'bad'}),{period:'all',robot:'',taskType:'',from:'',to:''})
+ assert.deepEqual(readTaskCriteria({period:'bad',robot:['R1'],taskType:'private',from:'2026-02-31',to:'bad'}),{period:'all',robot:'',taskType:'',destinationFloor:'',destinationLocation:'',from:'',to:''})
  assert.deepEqual(ids({period:'range',to:'2026-10-30'}),['c'])
  assert.deepEqual(ids({period:'range',from:'2026-11-01',to:'2026-10-30'}),[])
+})
+
+
+test('destination filters use canonical locations and compose with status dimensions',()=>{
+ const nodes={alias:{displayFloor:4,locationId:'4F:P1'},canonical:{displayFloor:4,locationId:'4F:P1'},upper:{displayFloor:5,locationId:'5F:P1'}}
+ const records=[{...tasks[0],routeNodes:['upper','alias']},{...tasks[1],routeNodes:['alias','canonical']},{...tasks[2],routeNodes:['canonical','upper']}]
+ const filter=query=>filterTaskRecords(records,readTaskCriteria(query),now,nodes).map(t=>t.id)
+ assert.deepEqual(filter({destinationFloor:'4'}),['a','b'])
+ assert.deepEqual(filter({destinationLocation:'4F:P1',robot:'R1'}),['a'])
+ assert.deepEqual(filter({destinationFloor:'5',destinationLocation:'4F:P1'}),[])
+ assert.equal(readTaskCriteria({destinationLocation:'zone_private',destinationFloor:'4.5'}).destinationLocation,'')
+ assert.equal(readTaskCriteria({destinationLocation:'4F:P12'}).destinationLocation,'')
 })

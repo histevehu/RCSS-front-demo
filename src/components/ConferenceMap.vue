@@ -170,6 +170,8 @@ function routeViewport() {
   }
   const inspector=workspace.querySelector('.task-inspector')
   if(visible(inspector)) viewport.bottom=Math.min(viewport.bottom,inspector.getBoundingClientRect().top-rect.top-24)
+  const metrics=workspace.querySelector('.planning-metrics')
+  if(visible(metrics)) viewport.bottom=Math.min(viewport.bottom,metrics.getBoundingClientRect().top-rect.top-24)
   const tools=workspace.querySelector('.map-tools')
   if(visible(tools)) viewport.bottom=Math.min(viewport.bottom,tools.getBoundingClientRect().top-rect.top-24)
   return viewport

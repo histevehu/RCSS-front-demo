@@ -17,6 +17,8 @@
         <div v-if="draft.period==='range'" class="date-range"><label>{{ ui.t('fromDate') }}<input v-model="draft.from" type="date" :max="draft.to || undefined"></label><label>{{ ui.t('toDate') }}<input v-model="draft.to" type="date" :min="draft.from || undefined"></label></div>
         <label>{{ ui.t('robot') }}<select v-model="draft.robot" :aria-label="ui.t('robot')"><option value="">{{ ui.t('allRobots') }}</option><option v-for="robot in store.robots" :key="robot.id" :value="robot.id">{{ robot.id }}</option></select></label>
         <label>{{ ui.t('taskType') }}<select v-model="draft.taskType" :aria-label="ui.t('taskType')"><option value="">{{ ui.t('allTypes') }}</option><option v-for="type in types" :key="type" :value="type">{{ ui.t(type) }}</option></select></label>
+        <label>{{ ui.t('destinationFloor') }}<select v-model="draft.destinationFloor"><option value="">{{ ui.t('allFloors') }}</option><option value="4">4F</option><option value="5">5F</option></select></label>
+        <label>{{ ui.t('destinationLocation') }}<select v-model="draft.destinationLocation"><option value="">{{ ui.t('allLocations') }}</option><option v-for="place in store.locations.filter(p=>p.selectable && (!draft.destinationFloor || String(p.floor)===draft.destinationFloor))" :key="place.id" :value="place.id">{{ ui.display(place.label) }}</option></select></label>
         <p v-if="invalidRange" class="error-text" role="alert">{{ ui.t('invalidDateRange') }}</p>
         <div class="filter-actions"><button type="button" @click="resetDraft">{{ ui.t('clearConditions') }}</button><button class="primary" :disabled="invalidRange" type="submit">{{ ui.t('applyFilters') }}</button></div>
       </form>
@@ -35,25 +37,28 @@ const props=defineProps({initialFilter:{type:String,default:'all'}}),emit=define
 const store=useAppStore(),ui=useUiStore(),router=useRouter(),route=useRoute()
 const currentFilter=computed(()=>normalizeTaskFilter(props.initialFilter))
 const criteria=computed(()=>readTaskCriteria(route.query))
-const filteredTasks=computed(()=>filterTaskRecords(store.getTasksByFilter(currentFilter.value),criteria.value,store.currentTime.getTime()))
+const filteredTasks=computed(()=>filterTaskRecords(store.getTasksByFilter(currentFilter.value),criteria.value,store.currentTime.getTime(),store.nodeById))
 const types=['delivery','pickup','sample','document','other']
 const showFilters=ref(false),draft=reactive(readTaskCriteria({}))
-const criteriaCount=computed(()=>Number(criteria.value.period!=='all')+Number(!!criteria.value.robot)+Number(!!criteria.value.taskType))
-const criteriaSummary=computed(()=>[criteria.value.period!=='all' ? (criteria.value.period==='range' ? `${criteria.value.from || '…'} – ${criteria.value.to || '…'}`:ui.t(`period_${criteria.value.period}`)):'',criteria.value.robot,criteria.value.taskType ? ui.t(criteria.value.taskType):''].filter(Boolean).join(' · '))
+const criteriaCount=computed(()=>Number(criteria.value.period!=='all')+Number(!!criteria.value.robot)+Number(!!criteria.value.taskType)+Number(!!criteria.value.destinationFloor)+Number(!!criteria.value.destinationLocation))
+const criteriaSummary=computed(()=>[criteria.value.period!=='all' ? (criteria.value.period==='range' ? `${criteria.value.from || '…'} – ${criteria.value.to || '…'}`:ui.t(`period_${criteria.value.period}`)):'',criteria.value.robot,criteria.value.taskType ? ui.t(criteria.value.taskType):'',criteria.value.destinationFloor ? `${ui.t('destinationFloor')} ${criteria.value.destinationFloor}F`:'',criteria.value.destinationLocation ? ui.display(store.locationById[criteria.value.destinationLocation]?.label || ui.t('unavailable')):''].filter(Boolean).join(' · '))
 const invalidRange=computed(()=>draft.period==='range' && !!draft.from && !!draft.to && draft.from>draft.to)
 function openFilters() {Object.assign(draft,criteria.value);showFilters.value=true}
 function resetDraft() {Object.assign(draft,readTaskCriteria({}))}
 function criteriaQuery(value) {
-  const query={...route.query};for(const key of ['period','robot','taskType','from','to']) delete query[key]
+  const query={...route.query};for(const key of ['period','robot','taskType','from','to','destinationFloor','destinationLocation']) delete query[key]
   if(value.period!=='all') query.period=value.period
   if(value.robot) query.robot=value.robot
   if(value.taskType) query.taskType=value.taskType
+  if(value.destinationFloor) query.destinationFloor=value.destinationFloor
+  if(value.destinationLocation) query.destinationLocation=value.destinationLocation
   if(value.period==='range') {if(value.from) query.from=value.from;if(value.to) query.to=value.to}
   return query
 }
-function applyFilters() {if(invalidRange.value) return;router.replace({name:'dashboard',query:criteriaQuery(draft)});showFilters.value=false}
-function clearCriteria() {router.replace({name:'dashboard',query:criteriaQuery(readTaskCriteria({}))})}
-function clearAll() {router.replace({name:'dashboard',query:{...criteriaQuery(readTaskCriteria({})),filter:'all'}})}
+function applyFilters() {if(invalidRange.value) return;router.replace({name:'tasks',query:criteriaQuery(draft)});showFilters.value=false}
+function clearCriteria() {router.replace({name:'tasks',query:criteriaQuery(readTaskCriteria({}))})}
+function clearAll() {router.replace({name:'tasks',query:{...criteriaQuery(readTaskCriteria({})),filter:'all'}})}
+watch(()=>draft.destinationFloor, floor=>{if(draft.destinationLocation && floor && String(store.locationById[draft.destinationLocation]?.floor)!==floor) draft.destinationLocation=''})
 // 大量历史只保留当前页组件，避免轮询时更新数千张卡片；数据仍完整保留。
 const page=ref(1),pageSize=30
 const pageCount=computed(()=>Math.max(1,Math.ceil(filteredTasks.value.length/pageSize)))

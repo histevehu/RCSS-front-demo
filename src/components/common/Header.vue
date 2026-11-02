@@ -1,7 +1,9 @@
 <template>
   <header ref="headerElement" class="workspace-header">
     <div class="brand"><h1>{{ ui.t('appTitle') }}</h1><span>{{ ui.t('liveMode') }}</span></div>
-    <div class="header-controls">
+    <select class="campus-select" :aria-label="ui.t('campus')" :value="store.scene?.campusId" :disabled="!store.scene" @change="selectCampus"><option v-if="!store.scene" value="">{{ ui.t('loadingCampus') }}</option><option v-for="campus in store.scene?.campuses || []" :key="campus.id" :value="campus.id">{{ campus.names[ui.preferences.locale] }}</option></select>
+    <nav class="page-tabs" :aria-label="ui.t('workspacePages')"><RouterLink :to="{name:'dashboard',query:route.query}" :aria-current="route.name==='dashboard' ? 'page':undefined">{{ ui.t('overview') }}</RouterLink><RouterLink :to="{name:'tasks',query:route.query}" :aria-current="route.name==='tasks' ? 'page':undefined">{{ ui.t('tasks') }}</RouterLink></nav>
+    <details ref="controlMenu" class="control-menu" :open="controlsOpen" @toggle="controlsOpen=$event.target.open"><summary>{{ ui.t('demoControls') }}</summary><div class="header-controls">
       <span class="connection" :class="{ offline:!store.connected }" :title="connectionText"><i></i><span>{{ connectionText }}</span></span>
       <time>{{ time }}</time>
       <button :disabled="!store.connected || store.busy" @click="store.control({paused:!store.clock.paused})">{{ ui.t(store.clock.paused ? 'resume':'pause') }}</button>
@@ -10,7 +12,7 @@
       <button class="focus-button" :aria-pressed="focus" @click="$emit('focus')">{{ ui.t(focus ? 'exitFocus':'focus') }}</button>
       <select v-model="ui.preferences.locale" :aria-label="ui.t('language')"><option value="zh-CN">中文</option><option value="en-US">English</option></select>
       <button :aria-label="ui.t('theme')" :title="ui.t(ui.preferences.theme === 'light' ? 'dark':'light')" @click="ui.preferences.theme = ui.preferences.theme === 'light' ? 'dark':'light'">{{ ui.t(ui.preferences.theme === 'light' ? 'dark':'light') }}</button>
-    </div>
+    </div></details>
     <div v-if="store.error" role="alert" class="demo-error">{{ ui.errorText(store.error) }}</div>
   </header>
 </template>
@@ -18,22 +20,43 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../../stores/appStore'
 import { useUiStore } from '../../stores/uiStore'
+import {useRoute} from 'vue-router'
 defineProps({focus:Boolean})
 defineEmits(['focus'])
-const store=useAppStore(), ui=useUiStore(), headerElement=ref(null)
+const store=useAppStore(), ui=useUiStore(), route=useRoute(), headerElement=ref(null),controlMenu=ref(null)
+const controlsMedia=window.matchMedia('(min-width:1101px)'),controlsOpen=ref(controlsMedia.matches)
+function resizeControls(event) {controlsOpen.value=event.matches}
+function dismissControls(event) {
+  if(!controlsMedia.matches && (event.key==='Escape' || (event.type==='pointerdown' && !controlMenu.value?.contains(event.target)))) controlsOpen.value=false
+}
+// The catalog has one genuine campus. Reselecting it must never reset the demo.
+function selectCampus(event) { if(event.target.value!==store.scene?.campusId) event.target.value=store.scene?.campusId }
 const connectionText=computed(()=>ui.t(!store.connected ? 'disconnected' : store.clock.paused ? 'paused':'connected'))
 const time=computed(()=>store.currentTime.toLocaleTimeString(ui.preferences.locale,{timeZone:'Asia/Shanghai',hour12:false}))
 let observer
-onMounted(()=>{ observer=new ResizeObserver(()=>document.documentElement.style.setProperty('--header-height',`${headerElement.value.offsetHeight}px`)); observer.observe(headerElement.value) })
-onUnmounted(()=>observer?.disconnect())
+onMounted(()=>{
+  observer=new ResizeObserver(()=>document.documentElement.style.setProperty('--header-height',`${headerElement.value.offsetHeight}px`))
+  observer.observe(headerElement.value)
+  controlsMedia.addEventListener('change',resizeControls)
+  document.addEventListener('pointerdown',dismissControls)
+  document.addEventListener('keydown',dismissControls)
+})
+onUnmounted(()=>{
+  observer?.disconnect()
+  controlsMedia.removeEventListener('change',resizeControls)
+  document.removeEventListener('pointerdown',dismissControls)
+  document.removeEventListener('keydown',dismissControls)
+})
 </script>
 <style scoped>
 .workspace-header { position:absolute; inset:0 0 auto; z-index:20; min-height:48px; padding:7px 16px; background:var(--surface);  display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.campus-select { max-width:150px; height:34px; }.page-tabs { display:flex; align-self:stretch; gap:16px; }.page-tabs a { display:flex; align-items:center; text-decoration:none; font-size:13px; color:var(--muted); border-bottom:2px solid transparent; padding:5px 0; white-space:nowrap; }.page-tabs a[aria-current="page"] { border-color:var(--text); color:var(--text); font-weight:600; }.control-menu { margin-left:auto; }.control-menu>summary { display:none; }.control-menu:not([open])>.header-controls { display:flex; }
 .brand { display:flex; flex-direction:column; gap:2px; flex-shrink:0; }.brand h1 { font-size:14px; font-weight:600; }.brand>span { font-size:11px; color:var(--muted); }
 .header-controls { margin-left:auto; display:flex; gap:6px; align-items:center; }.header-controls button,.header-controls select { height:32px; padding:4px 8px; white-space:nowrap; }
 .connection { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--success); }.connection i { width:6px; height:6px; border-radius:50%; background:currentColor; }.connection.offline { color:var(--danger); }
 time { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; margin:0 3px; }
 .demo-error { position:absolute; top:100%; left:50%; transform:translateX(-50%); max-width:90vw; padding:8px 14px; border:1px solid var(--danger); background:var(--surface-solid); color:var(--danger); border-radius:0 0 8px 8px; }
-@media(max-width:1199px) { .brand>span,time,.connection>span { display:none; }.workspace-header { gap:10px; } }
-@media(max-width:800px) { .workspace-header { gap:8px; }.brand { flex:1; }.brand h1 { font-size:13px; }.header-controls { width:100%; margin:0; flex-wrap:wrap; gap:4px; }.header-controls button,.header-controls select { min-height:44px; padding:4px 6px; }.header-controls select:last-of-type { width:84px; }.focus-button { display:none; } }
+@media(max-width:1300px) { .brand>span,time,.connection>span { display:none; }.workspace-header { gap:10px; } }
+@media(max-width:1100px) { .control-menu>summary { display:block; cursor:pointer; padding:9px; border:1px solid var(--control-border); border-radius:6px; }.control-menu:not([open])>.header-controls { display:none; }.control-menu[open]>.header-controls { display:flex; position:absolute; top:calc(100% + 6px); right:16px; width:300px; flex-wrap:wrap; padding:12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow); }.header-controls button,.header-controls select { min-height:44px; }.connection { width:100%; }.connection>span,time { display:inline; } }
+@media(max-width:800px) { .workspace-header { gap:8px; padding:8px 16px; }.brand { width:100%; }.brand h1 { font-size:16px; }.campus-select { max-width:138px; min-height:44px; }.page-tabs { gap:12px; }.page-tabs a { min-height:44px; }.control-menu>summary { font-size:12px; min-height:44px; display:flex; align-items:center; }.header-controls { margin:0; gap:6px; }.header-controls select:last-of-type { width:94px; } }
 </style>
