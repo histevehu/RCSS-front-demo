@@ -106,3 +106,8 @@ Navigation markers show user-facing labels (Floor · Point; S1–S5 on stairs). 
 ### Rendering and history performance
 
 Map pixels are merged into exact adjacent rectangles for rendering; algorithm map data is unchanged. Robot animation uses per-snapshot timeline indexes. Task records paginate at 30 per page; filters and metrics still use the complete session. See [the measured performance check](docs/map-performance.md) for results and limits, including the distinction between frontend history fixtures and backend scheduling capacity.
+
+
+### Task execution progress
+
+Task records show elapsed execution / planned execution duration and a thin progress bar, using the shared simulation clock. Pre-start queue time is excluded. Assigned waiting orders start at 0%; completed orders show the full duration and 100%. Scheduling orders show Awaiting scheduling; failed orders and missing/invalid estimates have no determinate bar. Pause, speed, disconnection freezing and refresh recovery follow the same store as the map. Percentages and elapsed time are clamped to valid execution bounds; progress adds no timer or API request. Legend entries show category names only; point/robot examples and floor ranges remain in map labels and hover details instead.

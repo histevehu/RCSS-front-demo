@@ -10,9 +10,9 @@
       <details class="tool-menu"><summary>{{ ui.t('objects') }}</summary><div class="tool-popover object-options"><label><input v-model="showRobots" type="checkbox"> {{ ui.t('robots') }}</label><label><input v-model="showRoute" type="checkbox"> {{ ui.t('route') }}</label></div></details>
       <button @click="renderer?.fitCamera()">{{ ui.t('resetView') }}</button>
       <details class="tool-menu map-legend"><summary>{{ ui.t('legend') }}</summary><div class="tool-popover legend-content">
-        <div><i class="legend-node"></i><span>{{ ui.t('navigationPoint') }} (P1, P2…)</span></div>
-        <div><i class="legend-portal"></i><span>{{ ui.t('stairs') }}</span></div>
-        <div><i class="legend-robot"></i><span>{{ ui.t('robot') }} (R1–R8)</span></div>
+        <div><i class="legend-node"></i><span>{{ ui.t('navigationPoint') }}</span></div>
+        <div><i class="legend-portal"></i><span>{{ ui.t('stairCategory') }}</span></div>
+        <div><i class="legend-robot"></i><span>{{ ui.t('idleRobot') }}</span></div>
         <div><i class="legend-executing"></i><span>{{ ui.t('executingRobot') }}</span></div>
         <div><i class="legend-route"></i><span>{{ ui.t('selectedRoute') }}</span></div>
         <div><i class="legend-start"></i><span>{{ ui.t('routeStart') }}</span><i class="legend-end"></i><span>{{ ui.t('routeEnd') }}</span></div>

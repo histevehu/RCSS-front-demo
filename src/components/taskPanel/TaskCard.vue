@@ -4,15 +4,31 @@
     <p>{{ ui.t(task.priority) }} · {{ task.robotId || ui.t('unassigned') }}<span v-if="task.finishTime != null"> · {{ ui.time(task.finishTime,store.clock.epoch) }}</span></p>
     <p v-if="task.status==='waiting'" class="waiting-context">{{ ui.reason(task) }} · {{ ui.t('waited') }} {{ ui.duration(task.waitSeconds) }}<span v-if="task.startTime!=null"> · {{ ui.t('startsIn') }} {{ ui.duration(task.startTime-store.uiNow) }}</span></p>
     <p class="route-text">{{ ui.display(store.formatRoute(task.routeNodes)) }}</p>
+    <section class="execution-progress">
+      <p v-if="progress.phase==='scheduling'">{{ ui.t('awaitScheduling') }}</p>
+      <template v-else><p class="duration-row"><span>{{ ui.t('executionDuration') }}</span><span>{{ ui.duration(progress.elapsed) }}<template v-if="progress.phase!=='failed'"> / {{ ui.duration(progress.total) }}</template><template v-if="progress.percent!==null"> · {{ Math.floor(progress.percent) }}%</template></span></p>
+        <progress v-if="progress.percent!==null" :value="progress.percent" max="100" :aria-label="ui.t('executionProgress')" :aria-valuetext="`${ui.duration(progress.elapsed)} / ${ui.duration(progress.total)} · ${Math.floor(progress.percent)}%`"></progress>
+      </template>
+    </section>
   </button>
 </template>
 <script setup>
 import { useAppStore } from '../../stores/appStore'
 import { useUiStore } from '../../stores/uiStore'
-defineProps({task:Object,isSelected:Boolean})
+import {computed} from 'vue'
+import {taskProgress} from '../../utils/taskProgress.js'
+const props=defineProps({task:Object,isSelected:Boolean})
 defineEmits(['select'])
 const store=useAppStore(),ui=useUiStore()
+const progress=computed(()=>taskProgress(props.task))
 </script>
 <style scoped>
 .task-card { width:100%; text-align:left; padding:10px; background:transparent; flex:none; border-color:var(--border); border-radius:6px; }.task-card:hover { background:var(--subtle); border-color:var(--control-border); }.task-card.selected { border-color:var(--accent); background:var(--active); }.task-card>div { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:12px; }.task-card strong { font-size:13px; font-weight:600; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }.task-card>div>span { flex:none; }.task-card p { margin-top:5px; font-size:12px; line-height:1.5; color:var(--muted); }.task-card .route-text { color:var(--text); }.task-card.selected .route-text { color:var(--accent); }.task-card .waiting-context { color:var(--warning); }
+/* One compact bottom band; progress is clock-driven, with no independent timer. */
+.execution-progress { margin-top:7px; }
+.execution-progress .duration-row { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:2px 8px; margin:0; }
+.duration-row>span:last-child { font-variant-numeric:tabular-nums; color:var(--text); }
+.execution-progress progress { display:block; height:3px; margin-top:5px; accent-color:var(--accent); }
+.execution-progress progress::-webkit-progress-value { background:var(--accent); }
+.execution-progress progress::-moz-progress-bar { background:var(--accent); }
 </style>
