@@ -2,6 +2,7 @@ import { formatDuration } from './demo.js'
 
 export const messages = {
   'zh-CN': {
+    taskUrgency:'紧急程度', assignedRobot:'分配机器人',
     stairCategory:'楼梯', idleRobot:'空闲机器人', executionDuration:'执行耗时', executionProgress:'执行进度', awaitScheduling:'等待调度',
     campus:'院区', loadingCampus:'加载院区…', workspacePages:'工作页面', demoControls:'演示控制', dispatchArea:'调度概况', distributionShort:'分布', metricsShort:'指标',
     floorDistribution:'任务楼层分布', destinationBasis:'按本场任务终点统计 · 每单计一次', topDestinations:'目的地点排行', noDestinationTasks:'暂无任务目的地点', destinationFloor:'目的楼层', destinationLocation:'目的地点', allLocations:'全部地点',
@@ -33,6 +34,7 @@ export const messages = {
     MAP_NOT_ALLOWED:'机器人无法进入目标地点', NODE_NOT_FOUND:'所选地点不可用', PATH_UNREACHABLE:'起终点之间没有可达路径', NO_FEASIBLE_ROBOT:'当前没有可执行此任务的机器人', SCHEDULE_FAILED:'调度失败，请重试',
   },
   'en-US': {
+    taskUrgency:'Priority', assignedRobot:'Assigned robot',
     stairCategory:'Stairs', idleRobot:'Idle robot', executionDuration:'Execution time', executionProgress:'Execution progress', awaitScheduling:'Awaiting scheduling',
     campus:'Campus', loadingCampus:'Loading campus…', workspacePages:'Workspace pages', demoControls:'Demo controls', dispatchArea:'Dispatch overview', distributionShort:'Demand', metricsShort:'Metrics',
     floorDistribution:'Tasks by floor', destinationBasis:'Session destinations · each order counted once', topDestinations:'Top destinations', noDestinationTasks:'No task destinations yet', destinationFloor:'Destination floor', destinationLocation:'Destination', allLocations:'All locations',
