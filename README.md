@@ -7,7 +7,7 @@ Vue 3 / Pinia / Three.js frontend for **live algorithm scheduling and simulated 
 Backend, in the `Robot_Cluster_Scheduling_System` checkout (Python dependencies from its `requirements.txt` must already be installed):
 
 ```sh
-.venv/bin/python -m uvicorn demo.main:app --host 127.0.0.1 --port 8001
+.venv/bin/python -m uvicorn demo.main:app --host 127.0.0.1 --port 8000
 ```
 
 Frontend, in this checkout (Node.js 20+):
@@ -17,7 +17,7 @@ npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
-Open <http://127.0.0.1:3000>. Vite forwards `/api` to `http://127.0.0.1:8001`. To use another backend, set `DEMO_API_URL` before starting Vite. `npm run build` and `npm run preview -- --host 127.0.0.1` also support that proxy; a separately deployed static server must forward `/api` to the backend and fall back to `index.html` for `/tasks`.
+Open <http://127.0.0.1:3000>. Vite forwards `/api` to `http://127.0.0.1:8000`. To use another backend, set `DEMO_API_URL` before starting Vite. `npm run build` and `npm run preview -- --host 127.0.0.1` also support that proxy; a separately deployed static server must forward `/api` to the backend and fall back to `index.html` for `/tasks`.
 
 ## Repeatable presentation
 
