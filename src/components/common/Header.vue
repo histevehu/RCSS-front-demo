@@ -2,7 +2,7 @@
   <header ref="headerElement" class="workspace-header">
     <div class="brand"><h1>{{ ui.t('appTitle') }}</h1><span>{{ ui.t('liveMode') }}</span></div>
     <select class="campus-select" :aria-label="ui.t('campus')" :value="store.scene?.campusId" :disabled="!store.scene || store.busy" @change="selectCampus"><option v-if="!store.scene" value="">{{ ui.t('loadingCampus') }}</option><option v-for="campus in store.scene?.campuses || []" :key="campus.id" :value="campus.id">{{ campus.names[ui.preferences.locale] }}</option></select>
-    <span v-if="store.sceneSwitch?.status==='loading'" role="status" aria-live="polite" class="switch-status">{{ ui.t('switchingCampus') }} {{ store.scene?.campuses?.find(c=>c.id===store.sceneSwitch.sceneId)?.names[ui.preferences.locale] }} · {{ ui.t(`switch_${store.sceneSwitch.stage}`) }}</span><span v-if="store.sceneSwitch?.status==='failed'" role="alert">{{ ui.t('campusLoadError') }}</span>
+    <span v-if="store.sceneSwitch?.status==='loading'" role="status" aria-live="polite" class="switch-status">{{ ui.t('switchingCampus') }} {{ store.scene?.campuses?.find(c=>c.id===store.sceneSwitch.sceneId)?.names[ui.preferences.locale] }} · {{ ui.t(`switch_${store.sceneSwitch.stage}`) }}</span><span v-if="store.sceneSwitch?.status==='failed'" role="alert">{{ campusError }} <button :disabled="store.busy || !store.connected" @click="selectCampus({target:{value:store.sceneSwitch.sceneId}})">{{ ui.t('retryCampus') }}</button></span>
     <nav class="page-tabs" :aria-label="ui.t('workspacePages')"><RouterLink :to="{name:'dashboard',query:route.query}" :aria-current="route.name==='dashboard' ? 'page':undefined">{{ ui.t('overview') }}</RouterLink><RouterLink :to="{name:'tasks',query:route.query}" :aria-current="route.name==='tasks' ? 'page':undefined">{{ ui.t('tasks') }}</RouterLink></nav>
     <details ref="controlMenu" class="control-menu" :open="controlsOpen" @toggle="controlsOpen=$event.target.open"><summary>{{ ui.t('demoControls') }}</summary><div class="header-controls">
       <span class="connection" :class="{ offline:!store.connected }" :title="connectionText"><i></i><span>{{ connectionText }}</span></span>
@@ -27,6 +27,7 @@ defineEmits(['focus'])
 const store=useAppStore(), ui=useUiStore(), route=useRoute(), router=useRouter(), headerElement=ref(null),controlMenu=ref(null)
 // URL criteria belong to the active campus; old place/task IDs must not leak.
 watch(()=>store.scene?.campusId,(id,previous)=>{ if(previous && previous!==id) router.replace({query:{}}) })
+const campusError=computed(()=>ui.t(({MAP_RESOURCE_TIMEOUT:'mapResourceTimeout',MAP_RESOURCE_CONNECTION:'mapResourceConnection',MAP_RESOURCE_HTTP:'mapResourceHttp',CAMPUS_PREPARATION_TIMEOUT:'campusPreparationTimeout'})[store.sceneSwitch?.errorCode] || 'campusLoadError'))
 const controlsMedia=window.matchMedia('(min-width:1101px)'),controlsOpen=ref(controlsMedia.matches)
 function resizeControls(event) {controlsOpen.value=event.matches}
 function dismissControls(event) {
