@@ -111,3 +111,11 @@ Map pixels are merged into exact adjacent rectangles for rendering; algorithm ma
 ### Task execution progress
 
 Task records show elapsed execution / planned execution duration and a thin progress bar, using the shared simulation clock. Pre-start queue time is excluded. Assigned waiting orders start at 0%; completed orders show the full duration and 100%. Scheduling orders show Awaiting scheduling; failed orders and missing/invalid estimates have no determinate bar. Pause, speed, disconnection freezing and refresh recovery follow the same store as the map. Percentages and elapsed time are clamped to valid execution bounds; progress adds no timer or API request. Legend entries show category names only; point/robot examples and floor ranges remain in map labels and hover details instead.
+
+### 园区数据来源
+
+顶部「园区」默认选择原有演示园区，可在无数据库环境运行。创投C座和室外
+使用后端数据库中的真实 PGM 地图、拓扑及指定机器人；不使用 Seer SMAP。
+真实园区的机器人地图分配、初始位置及后续执行均为模拟，不是实机遥测。
+园区切换成功会清空本场任务；加载失败保留当前场次并可重试，或选择演示园区。
+刷新浏览器保留后端当前园区，后端进程重启才恢复默认园区。

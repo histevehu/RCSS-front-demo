@@ -2,7 +2,7 @@ export const UNKNOWN_LOCATION = 'Unknown location'
 
 export function locationLabel(nodeById, nodeId) {
   const node = nodeById[nodeId]
-  return node?.locationId && node.displayCode && node.floorLabel ? `${node.floorLabel} · ${node.displayCode}` : UNKNOWN_LOCATION
+  return node?.locationId && node.displayCode && node.floorLabel ? (node.displayName ? `${node.floorLabel} · ${node.displayCode} · ${node.displayName}` : `${node.floorLabel} · ${node.displayCode}`) : UNKNOWN_LOCATION
 }
 
 export function routeLabels(path, nodeById) {

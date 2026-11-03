@@ -119,7 +119,9 @@ function disposeObject(object) {
   })
   object.removeFromParent()
 }
+let buildGeneration=0
 async function initialize() {
+  const build=++buildGeneration
   if (renderer || dead) return
   loading.value = true; failure.value = ''
   try {
@@ -138,7 +140,7 @@ async function initialize() {
         pgmWidth: pgm.width, pgmHeight: pgm.height, pgmPixels: pgm.pixels,
         pgmCanvas: pixelsToCanvas(pgm.pixels, pgm.width, pgm.height) }
     }))
-    if (dead) return
+    if (dead || build!==buildGeneration) return
     store.setMaps(maps)
     renderer = new Map3DRenderer(container.value, {showCrossMapLinks:false})
     renderer.init(); renderer.setData(maps); renderer.setTheme(ui.preferences.theme)
@@ -292,6 +294,16 @@ watch(()=>ui.preferences.theme,theme=>{
     const texture=mesh.getObjectByName('robot-label')?.material.map
     if(texture) { drawRobotLabel(texture.image,id,store.robots.find(r=>r.id===id)?.status); texture.needsUpdate=true }
   }
+})
+// Rebuild only for an actual campus snapshot change, never for route tabs/polls.
+watch(()=>store.scene?.version, async (version, previous)=>{
+  if(!previous || version===previous) return
+  ++buildGeneration
+  renderer?.dispose(); renderer=null
+  meshes.forEach(disposeObject); meshes.clear()
+  if(routeGroup) disposeObject(routeGroup)
+  routeGroup=null; routeKey=''; routeSegments=[]; meshSession=null; floor.value='all'; clearHover()
+  await initialize()
 })
 onMounted(initialize)
 onUnmounted(() => {

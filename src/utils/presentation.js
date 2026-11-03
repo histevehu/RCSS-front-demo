@@ -2,9 +2,11 @@ import { formatDuration } from './demo.js'
 
 export const messages = {
   'zh-CN': {
+    TRANSPORT_ITEM:'物品运输', TRANSPORT_MEDICINE:'药品运输', TRANSPORT_SPECIMEN:'样本运输', TRANSPORT_MED_WASTE:'医疗废物运输',
+    campusLoadError:'园区加载失败，请检查数据库、机器人配置和地图资源。当前场次已保留，可重试或选择演示园区。', simulatedPosition:'演示初始位置 · 演示地图分配',
     taskUrgency:'紧急程度', assignedRobot:'分配机器人',
     stairCategory:'楼梯', idleRobot:'空闲机器人', executionDuration:'执行耗时', executionProgress:'执行进度', awaitScheduling:'等待调度',
-    campus:'院区', loadingCampus:'加载院区…', workspacePages:'工作页面', demoControls:'演示控制', dispatchArea:'调度概况', distributionShort:'分布', metricsShort:'指标',
+    campus:'园区', loadingCampus:'加载园区…', switchCampusConfirm:'切换园区将清空本场任务和统计，是否继续？', workspacePages:'工作页面', demoControls:'演示控制', dispatchArea:'调度概况', distributionShort:'分布', metricsShort:'指标',
     floorDistribution:'任务楼层分布', destinationBasis:'按本场任务终点统计 · 每单计一次', topDestinations:'目的地点排行', noDestinationTasks:'暂无任务目的地点', destinationFloor:'目的楼层', destinationLocation:'目的地点', allLocations:'全部地点',
     schedulingMetrics:'调度指标', planningConflicts:'本场规划冲突', resolved:'已处理', unresolved:'未解决', resolutionRate:'冲突处理率', recentResolved:'近一小时已处理',
     verticalUsage:'垂直资源利用率', simulationHour:'近一小时', elevators:'电梯', noElevators:'未配置电梯', noStairs:'未配置楼梯', usageDefinition:'模拟执行占用 · 按已发生占用时间统计',
@@ -34,9 +36,11 @@ export const messages = {
     MAP_NOT_ALLOWED:'机器人无法进入目标地点', NODE_NOT_FOUND:'所选地点不可用', PATH_UNREACHABLE:'起终点之间没有可达路径', NO_FEASIBLE_ROBOT:'当前没有可执行此任务的机器人', SCHEDULE_FAILED:'调度失败，请重试',
   },
   'en-US': {
+    TRANSPORT_ITEM:'Item transport', TRANSPORT_MEDICINE:'Medicine transport', TRANSPORT_SPECIMEN:'Specimen transport', TRANSPORT_MED_WASTE:'Medical waste transport',
+    campusLoadError:'Campus unavailable. Check database, robot configuration and map resources. Current session preserved; retry or select Demo Campus.', simulatedPosition:'Simulated position · demo map assignment',
     taskUrgency:'Priority', assignedRobot:'Assigned robot',
     stairCategory:'Stairs', idleRobot:'Idle robot', executionDuration:'Execution time', executionProgress:'Execution progress', awaitScheduling:'Awaiting scheduling',
-    campus:'Campus', loadingCampus:'Loading campus…', workspacePages:'Workspace pages', demoControls:'Demo controls', dispatchArea:'Dispatch overview', distributionShort:'Demand', metricsShort:'Metrics',
+    campus:'Campus', loadingCampus:'Loading campus…', switchCampusConfirm:'Switch campus and clear this session’s tasks and statistics?', workspacePages:'Workspace pages', demoControls:'Demo controls', dispatchArea:'Dispatch overview', distributionShort:'Demand', metricsShort:'Metrics',
     floorDistribution:'Tasks by floor', destinationBasis:'Session destinations · each order counted once', topDestinations:'Top destinations', noDestinationTasks:'No task destinations yet', destinationFloor:'Destination floor', destinationLocation:'Destination', allLocations:'All locations',
     schedulingMetrics:'Scheduling metrics', planningConflicts:'Session conflicts', resolved:'Resolved', unresolved:'Unresolved', resolutionRate:'Resolution rate', recentResolved:'Resolved in last hour',
     verticalUsage:'Vertical resources', simulationHour:'Last hour', elevators:'Elevators', noElevators:'None configured', noStairs:'No stairs configured', usageDefinition:'Simulated execution · elapsed occupancy only',
@@ -77,7 +81,7 @@ export function publicText(value, locale) {
 }
 export function errorLabel(value, locale) {
   if (!value) return ''
-  const key = String(value).includes('Disconnected') ? 'disconnectedError'
+  const key = String(value).includes('Campus data unavailable') ? 'campusLoadError' : String(value).includes('Disconnected') ? 'disconnectedError'
     : String(value).includes('reconnect') ? 'reconnectError'
     : /SESSION_CHANGED|Demonstration changed/.test(value) ? 'sessionChanged' : 'requestError'
   return translate(locale,key)
@@ -106,7 +110,7 @@ export function readPreferences(storage) {
 
 // 能力编码仅用于匹配，界面始终使用本地化名称；未知编码不直接暴露。
 export function capabilityLabel(code, locale) {
-  const keys = {demo_transport:'transportCapability', demo_pickup:'pickupCapability',
+  const keys = {TRANSPORT_ITEM:'TRANSPORT_ITEM', TRANSPORT_MEDICINE:'TRANSPORT_MEDICINE', TRANSPORT_SPECIMEN:'TRANSPORT_SPECIMEN', TRANSPORT_MED_WASTE:'TRANSPORT_MED_WASTE', demo_transport:'transportCapability', demo_pickup:'pickupCapability',
     demo_sample:'sampleCapability', demo_document:'documentCapability', demo_special:'specialCapability'}
   return translate(locale, keys[code] || 'unknownCapability')
 }

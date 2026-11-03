@@ -1,9 +1,9 @@
 <template>
   <div class="robot-content">
-    <p class="location-key">{{ ui.t('locationKey') }}</p>
+    <p class="location-key">{{ ui.t('locationKey') }}</p><p v-if="store.scene?.source==='database'" class="location-key">{{ ui.t('simulatedPosition') }}</p>
     <div class="robot-list" :style="{'--robot-count':Math.max(store.robots.length,1)}" tabindex="0" :aria-label="ui.t('robots')">
       <div v-for="robot in store.robots" :key="robot.id" class="robot-item">
-        <div class="robot-identity"><span class="robot-dot" :class="`status-${robot.status}`"></span><strong>{{ robot.id }}</strong><span class="robot-location" :title="`${ui.t(store.robotLocation(robot).inTransit ? 'moving':'atNode')}: ${ui.display(store.robotLocation(robot).label)}`">{{ ui.display(store.robotLocation(robot).label) }}</span><span class="robot-status" :class="`status-${robot.status}`">{{ ui.t(robot.status) }}</span></div>
+        <div class="robot-identity" :title="[robot.model,robot.sn].filter(Boolean).join(' · ')"><span class="robot-dot" :class="`status-${robot.status}`"></span><strong>{{ robot.id }}</strong><span class="robot-location" :title="`${ui.t(store.robotLocation(robot).inTransit ? 'moving':'atNode')}: ${ui.display(store.robotLocation(robot).label)}`">{{ ui.display(store.robotLocation(robot).label) }}</span><span class="robot-status" :class="`status-${robot.status}`">{{ ui.t(robot.status) }}</span></div>
         <span class="robot-capabilities" :title="ui.t('supportedCapabilities')">{{ (robot.capabilities || []).map(ui.capability).join(' · ') || ui.t('unknownCapability') }}</span>
       </div>
     </div>

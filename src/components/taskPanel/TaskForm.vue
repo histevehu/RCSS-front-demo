@@ -55,14 +55,14 @@
 
     <p v-if="submitError" role="alert" class="error-text">{{ ui.errorText(submitError) }}</p>
     <div class="form-actions">
-      <button type="submit" class="btn-primary" :disabled="submitting || !store.connected || !locationOptions.length">{{ ui.t(submitting ? 'submitting':'createTask') }}</button>
+      <button type="submit" class="btn-primary" :disabled="submitting || store.busy || !store.connected || !locationOptions.length">{{ ui.t(submitting ? 'submitting':'createTask') }}</button>
       <button type="button" :disabled="submitting" @click="$emit('cancel')" class="btn-secondary">{{ ui.t('cancel') }}</button>
     </div>
   </form>
 </template>
 
 <script setup>
-import { reactive, computed, ref } from 'vue'
+import { reactive, computed, ref, watch } from 'vue'
 import { useAppStore } from '../../stores/appStore'
 import { useUiStore } from '../../stores/uiStore'
 
@@ -87,13 +87,11 @@ const priorities = [
 // 与后端场景目录共用能力映射，不在表单中另建一套业务规则。
 const requiredCapability = computed(() => store.scene?.taskCapabilities?.[form.taskType])
 const capableRobots = computed(() => store.robots.filter(r => r.capabilities?.includes(requiredCapability.value)).map(r => r.id))
-const taskTypes = [
-  { value: 'delivery' },
-  { value: 'pickup' },
-  { value: 'sample' },
-  { value: 'document' },
-  { value: 'other' },
-]
+const taskTypes = computed(() => Object.keys(store.scene?.taskCapabilities || {}).map(value=>({value})))
+watch(()=>store.scene?.version,()=>{
+  form.taskType=taskTypes.value[0]?.value || ''
+  form.startLocation=''; form.endLocation=''
+},{immediate:true})
 
 const locationOptions = computed(() => store.locations.filter(location => location.selectable))
 const locationGroups = computed(() => [...new Set(locationOptions.value.map(location => location.floor))].sort((a,b) => a-b).map(floor => ({

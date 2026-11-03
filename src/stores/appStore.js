@@ -48,7 +48,13 @@ export const useAppStore = defineStore('app', () => {
     const seq = ++sequence, gen = generation
     try {
       const data = await api('state')
-      if (apply(data, seq, gen)) await loadScene()
+      if (gen !== generation || seq < applied || retiredSessions.has(data.sessionId)) return
+      if (data.sceneVersion !== scene.value?.version) {
+        const nextScene = await api('scene')
+        if (gen !== generation || seq < applied || nextScene.version !== data.sceneVersion) return
+        scene.value = nextScene; scenePromise = Promise.resolve(nextScene)
+      }
+      apply(data, seq, gen)
     } catch (e) {
       if (gen === generation && seq >= applied) {
         const frozen = now()
@@ -74,6 +80,19 @@ export const useAppStore = defineStore('app', () => {
       apply(data, seq, gen)
       if (reset) selectedTaskId.value = null
     } catch (e) { error.value = e.message; await refresh() }
+    finally { busy.value = false }
+  }
+  async function switchScene(sceneId) {
+    if (busy.value || sceneId === scene.value?.campusId) return
+    busy.value = true
+    const gen = ++generation, seq = ++sequence
+    try {
+      const data = await api('scene', { sessionId: sessionId.value, sceneId })
+      const nextScene = await api('scene')
+      if (gen !== generation) return
+      scene.value = nextScene; scenePromise = Promise.resolve(nextScene)
+      apply(data, seq, gen)
+    } catch (e) { error.value = 'Campus data unavailable; current session preserved' }
     finally { busy.value = false }
   }
   async function addTask(task, requestId, retryTaskId) {
@@ -147,5 +166,5 @@ export const useAppStore = defineStore('app', () => {
   function setMaps(data) { maps.value = data }
   return { scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
     selectedTaskId, selectionVersion, selectedTask, currentTime, nodeById, locations, locationById, formatLocation, formatRoute, maps, connected, busy, error,
-    loadScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
+    loadScene, switchScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
 })

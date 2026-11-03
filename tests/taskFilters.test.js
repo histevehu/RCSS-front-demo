@@ -31,5 +31,11 @@ test('destination filters use canonical locations and compose with status dimens
  assert.deepEqual(filter({destinationLocation:'4F:P1',robot:'R1'}),['a'])
  assert.deepEqual(filter({destinationFloor:'5',destinationLocation:'4F:P1'}),[])
  assert.equal(readTaskCriteria({destinationLocation:'zone_private',destinationFloor:'4.5'}).destinationLocation,'')
- assert.equal(readTaskCriteria({destinationLocation:'4F:P12'}).destinationLocation,'')
+ assert.equal(readTaskCriteria({destinationLocation:'4F:P12'}).destinationLocation,'4F:P12')
+})
+
+test('database robots, transport types and dynamic floors survive URL round trips',()=>{
+ const query={robot:'药品盒车02',taskType:'TRANSPORT_MEDICINE',destinationFloor:'1',destinationLocation:'1F:P24'}
+ const parsed=readTaskCriteria(query)
+ for(const [key,value] of Object.entries(query)) assert.equal(parsed[key],value)
 })

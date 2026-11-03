@@ -1,7 +1,7 @@
 <template>
   <header ref="headerElement" class="workspace-header">
     <div class="brand"><h1>{{ ui.t('appTitle') }}</h1><span>{{ ui.t('liveMode') }}</span></div>
-    <select class="campus-select" :aria-label="ui.t('campus')" :value="store.scene?.campusId" :disabled="!store.scene" @change="selectCampus"><option v-if="!store.scene" value="">{{ ui.t('loadingCampus') }}</option><option v-for="campus in store.scene?.campuses || []" :key="campus.id" :value="campus.id">{{ campus.names[ui.preferences.locale] }}</option></select>
+    <select class="campus-select" :aria-label="ui.t('campus')" :value="store.scene?.campusId" :disabled="!store.scene || store.busy" @change="selectCampus"><option v-if="!store.scene" value="">{{ ui.t('loadingCampus') }}</option><option v-for="campus in store.scene?.campuses || []" :key="campus.id" :value="campus.id">{{ campus.names[ui.preferences.locale] }}</option></select>
     <nav class="page-tabs" :aria-label="ui.t('workspacePages')"><RouterLink :to="{name:'dashboard',query:route.query}" :aria-current="route.name==='dashboard' ? 'page':undefined">{{ ui.t('overview') }}</RouterLink><RouterLink :to="{name:'tasks',query:route.query}" :aria-current="route.name==='tasks' ? 'page':undefined">{{ ui.t('tasks') }}</RouterLink></nav>
     <details ref="controlMenu" class="control-menu" :open="controlsOpen" @toggle="controlsOpen=$event.target.open"><summary>{{ ui.t('demoControls') }}</summary><div class="header-controls">
       <span class="connection" :class="{ offline:!store.connected }" :title="connectionText"><i></i><span>{{ connectionText }}</span></span>
@@ -17,20 +17,26 @@
   </header>
 </template>
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useAppStore } from '../../stores/appStore'
 import { useUiStore } from '../../stores/uiStore'
-import {useRoute} from 'vue-router'
+import {useRoute,useRouter} from 'vue-router'
 defineProps({focus:Boolean})
 defineEmits(['focus'])
-const store=useAppStore(), ui=useUiStore(), route=useRoute(), headerElement=ref(null),controlMenu=ref(null)
+const store=useAppStore(), ui=useUiStore(), route=useRoute(), router=useRouter(), headerElement=ref(null),controlMenu=ref(null)
+// URL criteria belong to the active campus; old place/task IDs must not leak.
+watch(()=>store.scene?.campusId,(id,previous)=>{ if(previous && previous!==id) router.replace({query:{}}) })
 const controlsMedia=window.matchMedia('(min-width:1101px)'),controlsOpen=ref(controlsMedia.matches)
 function resizeControls(event) {controlsOpen.value=event.matches}
 function dismissControls(event) {
   if(!controlsMedia.matches && (event.key==='Escape' || (event.type==='pointerdown' && !controlMenu.value?.contains(event.target)))) controlsOpen.value=false
 }
-// The catalog has one genuine campus. Reselecting it must never reset the demo.
-function selectCampus(event) { if(event.target.value!==store.scene?.campusId) event.target.value=store.scene?.campusId }
+// A successful switch starts a new shared session; cancellation preserves it.
+async function selectCampus(event) {
+  const id=event.target.value
+  if(id!==store.scene?.campusId && (!store.stats.total || window.confirm(ui.t('switchCampusConfirm')))) await store.switchScene(id)
+  event.target.value=store.scene?.campusId
+}
 const connectionText=computed(()=>ui.t(!store.connected ? 'disconnected' : store.clock.paused ? 'paused':'connected'))
 const time=computed(()=>store.currentTime.toLocaleTimeString(ui.preferences.locale,{timeZone:'Asia/Shanghai',hour12:false}))
 let observer

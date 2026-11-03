@@ -1,6 +1,6 @@
 /** 状态入口属于概览；时间、机器人和类型是可组合的记录查询条件。 */
 export const statusFilters = ['all', 'executing', 'waiting', 'completed', 'failed']
-const taskTypes = ['delivery', 'pickup', 'sample', 'document', 'other']
+const taskTypes = ['delivery', 'pickup', 'sample', 'document', 'other', 'TRANSPORT_ITEM', 'TRANSPORT_MEDICINE', 'TRANSPORT_SPECIMEN', 'TRANSPORT_MED_WASTE']
 export function normalizeTaskFilter(value) {
   // 兼容旧链接中的紧急/今天筛选，不再作为新的菜单入口。
   return [...statusFilters, 'urgent', 'today'].includes(value) ? value : 'all'
@@ -12,10 +12,10 @@ function validDate(value) {
 }
 export function readTaskCriteria(query) {
   return {period:['hour','today','range'].includes(query.period) ? query.period:'all',
-    robot:typeof query.robot==='string' && /^R\d+$/.test(query.robot) ? query.robot:'',
+    robot:typeof query.robot==='string' && query.robot.length>0 && query.robot.length<=128 ? query.robot:'',
     taskType:taskTypes.includes(query.taskType) ? query.taskType:'',
-    destinationFloor:['4','5'].includes(query.destinationFloor) ? query.destinationFloor:'',
-    destinationLocation:typeof query.destinationLocation==='string' && /^(4F:P([1-9]|1[01])|5F:P[1-5])$/.test(query.destinationLocation) ? query.destinationLocation:'',
+    destinationFloor:typeof query.destinationFloor==='string' && /^-?\d+(\.\d+)?$/.test(query.destinationFloor) ? query.destinationFloor:'',
+    destinationLocation:typeof query.destinationLocation==='string' && /^-?\d+(?:\.\d+)?F:P[1-9]\d*$/.test(query.destinationLocation) ? query.destinationLocation:'',
     from:validDate(query.from),to:validDate(query.to)}
 }
 
