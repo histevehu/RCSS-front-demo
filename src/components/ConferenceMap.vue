@@ -119,7 +119,19 @@ function disposeObject(object) {
   })
   object.removeFromParent()
 }
-let buildGeneration=0
+let buildGeneration=0, preparationWorker, preparationReject
+function prepareMaps(maps) {
+  return new Promise((resolve,reject)=>{
+    preparationReject?.(new Error('Superseded map preparation'))
+    preparationWorker?.terminate()
+    preparationReject=reject
+    const worker=new Worker(new URL('../utils/mapPreparation.worker.js',import.meta.url),{type:'module'})
+    preparationWorker=worker
+    worker.onmessage=({data})=>{worker.terminate();data.error ? reject(new Error(data.error)):resolve(data)}
+    worker.onerror=e=>{worker.terminate();reject(new Error(e.message))}
+    worker.postMessage(maps,maps.map(m=>m.buffer))
+  })
+}
 async function initialize() {
   const build=++buildGeneration
   if (renderer || dead) return
@@ -129,7 +141,7 @@ async function initialize() {
     const maps = await Promise.all(scene.maps.map(async m => {
       const [pgmResponse, yamlResponse] = await Promise.all([fetch(`/api${m.assetBase}.pgm`), fetch(`/api${m.assetBase}.yaml`)])
       if (!pgmResponse.ok || !yamlResponse.ok) throw new Error('Map assets are unavailable. Please retry.')
-      const pgm = parsePGM(await pgmResponse.arrayBuffer())
+      const buffer = await pgmResponse.arrayBuffer()
       const config = yaml.load(await yamlResponse.text())
       return { ...m, waypoints: m.waypoints.map(wp => ({ ...wp, connections: wp.connections
         .filter(c => scene.maps.find(tm => tm.mapName === c.map_name)?.waypoints.some(tw => tw.code === c.target_node))
@@ -137,13 +149,17 @@ async function initialize() {
           displayLabel:store.nodeById[wp.nodeId]?.displayKind==='stairs' ? store.nodeById[wp.nodeId]?.displayCode : store.formatLocation(wp.nodeId),
           renderMarker:store.nodeById[wp.nodeId]?.isLocationRepresentative === true})).map(wp => ({...wp, markerColor:waypointColor(wp)})),
         mapConfig: { resolution: config.resolution, origin: config.origin },
-        pgmWidth: pgm.width, pgmHeight: pgm.height, pgmPixels: pgm.pixels,
-        pgmCanvas: pixelsToCanvas(pgm.pixels, pgm.width, pgm.height) }
+        buffer }
     }))
+    const prepared=await prepareMaps(maps)
     if (dead || build!==buildGeneration) return
-    store.setMaps(maps)
+    store.setMaps(prepared.maps)
     renderer = new Map3DRenderer(container.value, {showCrossMapLinks:false})
-    renderer.init(); renderer.setData(maps); renderer.setTheme(ui.preferences.theme)
+    renderer.init(); renderer.allMaps=prepared.maps; renderer.preparedIndoor=prepared.indoor;
+    const activeRenderer=renderer
+    await activeRenderer.render(true)
+    if(dead || build!==buildGeneration) { activeRenderer.dispose(); return }
+    activeRenderer.setTheme(ui.preferences.theme)
     renderer.onFrame = updateFrame
     const canvas = renderer.renderer.domElement
     canvas.addEventListener('pointermove', pointerMove)
@@ -154,7 +170,7 @@ async function initialize() {
     renderer.controls.addEventListener('change', clearHover)
     loading.value = false
     focusSelectedTask()
-  } catch (e) { failure.value = 'The map could not be loaded. Please retry.'; loading.value = false }
+  } catch (e) { if(dead || build!==buildGeneration) return; failure.value = 'The map could not be loaded. Please retry.'; loading.value = false }
 }
 /** 根据面板实际位置预留画布空间，手机抽屉占用底部，桌面侧栏占用两侧。 */
 function routeViewport() {
@@ -308,6 +324,7 @@ watch(()=>store.scene?.version, async (version, previous)=>{
 onMounted(initialize)
 onUnmounted(() => {
   dead = true
+  preparationWorker?.terminate()
   if (renderer) {
     const canvas = renderer.renderer.domElement
     canvas.removeEventListener('pointermove', pointerMove)

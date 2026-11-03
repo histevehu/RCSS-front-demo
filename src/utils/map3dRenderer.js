@@ -191,17 +191,19 @@ export class Map3DRenderer {
   /**
    * 渲染所有地图
    */
-  render() {
+  async render(yieldFrames=false) {
     // 清除旧的地图组
     this.mapGroups.forEach(group => this.scene.remove(group))
     this.mapGroups.clear()
 
     // 计算全局室内地图（按楼层分组）
-    const globalIndoorMaps = this.calculateGlobalIndoorMaps()
+    const globalIndoorMaps = this.preparedIndoor || this.calculateGlobalIndoorMaps()
 
     // 渲染每个地图
     for (const map of this.allMaps) {
       if (!map.visible) continue
+      if(yieldFrames) await new Promise(resolve=>setTimeout(resolve,0))
+      if(!this.scene || this.disposed) return
 
       const mapGroup = new THREE.Group()
       mapGroup.name = map.mapName
@@ -941,6 +943,7 @@ export class Map3DRenderer {
    * 销毁渲染器
    */
   dispose() {
+    this.disposed=true
     window.removeEventListener('resize', this.resizeHandler)
     this.onFrame = null
     if (this.animationId) {

@@ -167,3 +167,21 @@ test('only the canonical marker is drawn for a shared place', async () => {
   renderer.renderWaypoints(group,{mapName:'internal',waypoints:[wp,{...wp,nodeId:'alias',renderMarker:false}]})
   assert.equal(group.getObjectByName('waypoints').children.length,1)
 })
+
+test('background campus loading keeps polling connected and resumes after refresh',async()=>{
+ let job=null, completed=false
+ globalThis.fetch=async(url,opts)=>{
+  if(url.endsWith('scene') && opts?.method==='POST') {
+   job={id:'job',sceneId:'outdoor',status:'loading',stage:'assets'}
+   return response({sceneSwitch:job})
+  }
+  if(url.endsWith('scene')) return response({version:completed?'v2':'v1',campusId:completed?'outdoor':'demo-campus',nodes:[],maps:[]})
+  return response(state(completed?'second':'first',{sceneVersion:completed?'v2':'v1',sceneSwitch:job}))
+ }
+ const s=store();await s.refresh();await s.switchScene('outdoor')
+ assert.equal(s.busy,true);assert.equal(s.connected,true)
+ await s.refresh();assert.equal(s.sessionId,'first');assert.equal(s.connected,true)
+ completed=true;job={...job,status:'completed'}
+ await s.refresh();assert.equal(s.sessionId,'second');assert.equal(s.busy,false)
+ assert.equal(s.scene.campusId,'outdoor')
+})

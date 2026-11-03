@@ -11,7 +11,9 @@ export const useAppStore = defineStore('app', () => {
   const selectionVersion = ref(0)
   const connected = ref(false)
   const error = ref('')
-  const busy = ref(false)
+  const operationBusy = ref(false)
+  const sceneSwitch = computed(()=>snapshot.value?.sceneSwitch)
+  const busy = computed({get:()=>operationBusy.value || sceneSwitch.value?.status==='loading',set:value=>{operationBusy.value=value}})
   const uiNow = ref(0)
   const maps = shallowRef([])
   let receivedAt = 0, sequence = 0, applied = 0, generation = 0, polling = false
@@ -87,11 +89,10 @@ export const useAppStore = defineStore('app', () => {
     busy.value = true
     const gen = ++generation, seq = ++sequence
     try {
-      const data = await api('scene', { sessionId: sessionId.value, sceneId })
-      const nextScene = await api('scene')
+      const data = await api('scene', { sessionId: sessionId.value, sceneId, requestId:crypto.randomUUID() })
       if (gen !== generation) return
-      scene.value = nextScene; scenePromise = Promise.resolve(nextScene)
-      apply(data, seq, gen)
+      if(data.sceneSwitch) snapshot.value={...snapshot.value,sceneSwitch:data.sceneSwitch}
+      else apply(data, ++sequence, gen)
     } catch (e) { error.value = 'Campus data unavailable; current session preserved' }
     finally { busy.value = false }
   }
@@ -166,5 +167,5 @@ export const useAppStore = defineStore('app', () => {
   function setMaps(data) { maps.value = data }
   return { scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
     selectedTaskId, selectionVersion, selectedTask, currentTime, nodeById, locations, locationById, formatLocation, formatRoute, maps, connected, busy, error,
-    loadScene, switchScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
+    sceneSwitch, loadScene, switchScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
 })

@@ -4,6 +4,7 @@ export const messages = {
   'zh-CN': {
     TRANSPORT_ITEM:'物品运输', TRANSPORT_MEDICINE:'药品运输', TRANSPORT_SPECIMEN:'样本运输', TRANSPORT_MED_WASTE:'医疗废物运输',
     campusLoadError:'园区加载失败，请检查数据库、机器人配置和地图资源。当前场次已保留，可重试或选择演示园区。', simulatedPosition:'演示初始位置 · 演示地图分配',
+    robotCapabilities:'支持能力', currentLocation:'当前位置', switchingCampus:'正在切换园区', switch_configuration:'读取配置', switch_assets:'获取地图', switch_validation:'校验建图', switch_commit:'提交场次',
     taskUrgency:'紧急程度', assignedRobot:'分配机器人',
     stairCategory:'楼梯', idleRobot:'空闲机器人', executionDuration:'执行耗时', executionProgress:'执行进度', awaitScheduling:'等待调度',
     campus:'园区', loadingCampus:'加载园区…', switchCampusConfirm:'切换园区将清空本场任务和统计，是否继续？', workspacePages:'工作页面', demoControls:'演示控制', dispatchArea:'调度概况', distributionShort:'分布', metricsShort:'指标',
@@ -38,6 +39,7 @@ export const messages = {
   'en-US': {
     TRANSPORT_ITEM:'Item transport', TRANSPORT_MEDICINE:'Medicine transport', TRANSPORT_SPECIMEN:'Specimen transport', TRANSPORT_MED_WASTE:'Medical waste transport',
     campusLoadError:'Campus unavailable. Check database, robot configuration and map resources. Current session preserved; retry or select Demo Campus.', simulatedPosition:'Simulated position · demo map assignment',
+    robotCapabilities:'Capabilities', currentLocation:'Current location', switchingCampus:'Switching campus', switch_configuration:'Reading configuration', switch_assets:'Fetching maps', switch_validation:'Validating topology', switch_commit:'Committing session',
     taskUrgency:'Priority', assignedRobot:'Assigned robot',
     stairCategory:'Stairs', idleRobot:'Idle robot', executionDuration:'Execution time', executionProgress:'Execution progress', awaitScheduling:'Awaiting scheduling',
     campus:'Campus', loadingCampus:'Loading campus…', switchCampusConfirm:'Switch campus and clear this session’s tasks and statistics?', workspacePages:'Workspace pages', demoControls:'Demo controls', dispatchArea:'Dispatch overview', distributionShort:'Demand', metricsShort:'Metrics',
