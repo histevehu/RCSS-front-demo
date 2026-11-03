@@ -258,3 +258,25 @@ test('late startup scene fetch cannot replace the scene adopted by polling',asyn
   assert.equal((await startup).campusId,'B')
   assert.equal(s.scene.campusId,'B');assert.equal(s.snapshot.campusId,'B')
 })
+
+test('old backend exposes unsupported batch settings instead of a fake enabled default',async()=>{
+  let writes=0
+  globalThis.fetch=async(url,opts)=>{if(opts?.method==='POST')writes++;return response(url.endsWith('scene')?{nodes:[],maps:[]}:state())}
+  const s=store();await s.refresh()
+  assert.equal(s.batchSupported,false);assert.equal(s.batching.enabled,false)
+  await s.saveBatch({batchEnabled:false})
+  assert.equal(writes,0);assert.equal(s.batchError,'BATCH_UNSUPPORTED')
+})
+
+test('batch settings save adopts server values and preserves settings on failure',async()=>{
+  let fail=false
+  globalThis.fetch=async(url,opts)=>{
+    if(url.endsWith('scene'))return response({nodes:[],maps:[]})
+    if(opts?.method==='POST' && fail)throw Error('offline')
+    return response(state('first',{batching:{enabled:opts?.method==='POST'?false:true,windowSeconds:5,collecting:null}}))
+  }
+  const s=store();await s.refresh();assert.equal(s.batchSupported,true)
+  await s.saveBatch({batchEnabled:false});assert.equal(s.batching.enabled,false)
+  fail=true;await s.saveBatch({batchWindowSeconds:20})
+  assert.equal(s.batching.windowSeconds,5);assert.equal(s.batchError,'offline');assert.equal(s.batchSaving,false)
+})

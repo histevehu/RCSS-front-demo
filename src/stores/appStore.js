@@ -16,13 +16,19 @@ export const useAppStore = defineStore('app', () => {
   const busy = computed({get:()=>operationBusy.value || sceneSwitch.value?.status==='loading',set:value=>{operationBusy.value=value}})
   const realNow = ref(performance.now())
   const batchSaving = ref(false), batchError = ref('')
-  const batching = computed(() => snapshot.value?.batching || {enabled:true,windowSeconds:10,collecting:null})
+  const batchSupported = computed(() => typeof snapshot.value?.batching?.enabled === 'boolean' && Number.isInteger(snapshot.value?.batching?.windowSeconds))
+  const batching = computed(() => batchSupported.value ? snapshot.value.batching : {enabled:false,windowSeconds:10,collecting:null})
   const batchRemaining = computed(() => Math.max(0,(batching.value.collecting?.remainingSeconds || 0) - (connected.value ? (realNow.value-receivedAt)/1000 : 0)))
   async function saveBatch(body) {
+    if(!batchSupported.value) {batchError.value='BATCH_UNSUPPORTED';return}
     if(batchSaving.value || busy.value || !connected.value) return
     batchSaving.value=true; batchError.value=''
-    const gen=generation,seq=++sequence
-    try {await applyWithScene(await api('control',{sessionId:sessionId.value,...body}),seq,gen)}
+    const gen=++generation,seq=++sequence
+    try {
+      const data=await api('control',{sessionId:sessionId.value,...body})
+      if(!data.batching) throw new Error('BATCH_UNSUPPORTED')
+      await applyWithScene(data,seq,gen)
+    }
     catch(e) {batchError.value=e.message}
     finally {batchSaving.value=false}
   }
@@ -193,7 +199,7 @@ export const useAppStore = defineStore('app', () => {
   function robotFloor(robot, time) { return robotLocation(robot, time).floor }
   function selectTask(id) { selectedTaskId.value = id; selectionVersion.value++ }
   function setMaps(data) { maps.value = data }
-  return { batching, batchRemaining, batchSaving, batchError, saveBatch, scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
+  return { batchSupported, batching, batchRemaining, batchSaving, batchError, saveBatch, scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
     selectedTaskId, selectionVersion, selectedTask, currentTime, nodeById, locations, locationById, formatLocation, formatRoute, maps, connected, busy, error,
     sceneSwitch, loadScene, switchScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
 })

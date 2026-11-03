@@ -123,3 +123,7 @@ Task records show elapsed execution / planned execution duration and a thin prog
 园区加载通过后台作业执行，准备期间保留当前地图并显示阶段；状态轮询持续运行。
 地图的 PGM 解析和全局栅格预处理使用 Web Worker，机器人条目按内容排列，
 并分别标明当前位置与支持能力。加载失败可重新选择园区重试。
+
+### 批任务设置与后端更新
+
+发布区的批任务设置由演示后端保存。后端代码更新后，如启动命令未使用 `--reload`，需要重启实际由 Vite 代理连接的 `demo.main:app` 进程；默认代理目标为 `http://127.0.0.1:8000`，也可通过 `DEMO_API_URL` 指定。重启会清空该进程缓存的所有园区演示状态。旧版本后端不返回 `state.batching` 时，界面禁用批任务设置并提示重启，不再显示虚假的默认开启状态。

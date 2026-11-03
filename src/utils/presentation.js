@@ -2,7 +2,7 @@ import { formatDuration } from './demo.js'
 
 export const messages = {
   'zh-CN': {
-    batchSubmission:'批任务提交',batchWindow:'时间窗',collectedTasks:'条已收集',awaitFirstTask:'等待首条任务',nextBatchWindow:'下一批时间窗',invalidBatchWindow:'请输入 1–60 的整数秒',joinBatch:'加入当前批次',publishNow:'立即发布',createAndContinue:'创建并继续',collecting:'等待成批',
+    batchUnsupported:'演示后端版本过旧，请重启后端以启用批任务设置。',batchSubmission:'批任务提交',batchWindow:'时间窗',collectedTasks:'条已收集',awaitFirstTask:'等待首条任务',nextBatchWindow:'下一批时间窗',invalidBatchWindow:'请输入 1–60 的整数秒',joinBatch:'加入当前批次',publishNow:'立即发布',createAndContinue:'创建并继续',collecting:'等待成批',
     TRANSPORT_ITEM:'物品运输', TRANSPORT_MEDICINE:'药品运输', TRANSPORT_SPECIMEN:'样本运输', TRANSPORT_MED_WASTE:'医疗废物运输',
     campusLoadError:'园区加载失败，请检查数据库、机器人配置和地图资源。当前场次已保留，可重试或选择演示园区。', simulatedPosition:'演示初始位置 · 演示地图分配',
     robotCapabilities:'支持能力', currentLocation:'当前位置', switchingCampus:'正在切换园区', switch_configuration:'读取配置', switch_assets:'获取地图', switch_validation:'校验建图', switch_commit:'提交场次',
@@ -41,7 +41,7 @@ export const messages = {
     MAP_NOT_ALLOWED:'机器人无法进入目标地点', NODE_NOT_FOUND:'所选地点不可用', PATH_UNREACHABLE:'起终点之间没有可达路径', NO_FEASIBLE_ROBOT:'当前没有可执行此任务的机器人', SCHEDULE_FAILED:'调度失败，请重试',
   },
   'en-US': {
-    batchSubmission:'Batch submission',batchWindow:'Window',collectedTasks:'tasks collected',awaitFirstTask:'Waiting for first task',nextBatchWindow:'Next batch window',invalidBatchWindow:'Enter an integer from 1 to 60 seconds',joinBatch:'Join batch',publishNow:'Publish now',createAndContinue:'Create and continue',collecting:'Collecting batch',
+    batchUnsupported:'The demo backend is outdated. Restart it to enable batch settings.',batchSubmission:'Batch submission',batchWindow:'Window',collectedTasks:'tasks collected',awaitFirstTask:'Waiting for first task',nextBatchWindow:'Next batch window',invalidBatchWindow:'Enter an integer from 1 to 60 seconds',joinBatch:'Join batch',publishNow:'Publish now',createAndContinue:'Create and continue',collecting:'Collecting batch',
     TRANSPORT_ITEM:'Item transport', TRANSPORT_MEDICINE:'Medicine transport', TRANSPORT_SPECIMEN:'Specimen transport', TRANSPORT_MED_WASTE:'Medical waste transport',
     campusLoadError:'Campus unavailable. Check database, robot configuration and map resources. Current session preserved; retry or select Demo Campus.', simulatedPosition:'Simulated position · demo map assignment',
     robotCapabilities:'Capabilities', currentLocation:'Current location', switchingCampus:'Switching campus', switch_configuration:'Reading configuration', switch_assets:'Fetching maps', switch_validation:'Validating topology', switch_commit:'Committing session',
@@ -91,7 +91,7 @@ export function publicText(value, locale) {
 }
 export function errorLabel(value, locale) {
   if (!value) return ''
-  const key = String(value).includes('Campus data unavailable') ? 'campusLoadError' : String(value).includes('Disconnected') ? 'disconnectedError'
+  const key = String(value).includes('BATCH_UNSUPPORTED') ? 'batchUnsupported' : String(value).includes('Campus data unavailable') ? 'campusLoadError' : String(value).includes('Disconnected') ? 'disconnectedError'
     : String(value).includes('reconnect') ? 'reconnectError'
     : /SESSION_CHANGED|Demonstration changed/.test(value) ? 'sessionChanged' : 'requestError'
   return translate(locale,key)
