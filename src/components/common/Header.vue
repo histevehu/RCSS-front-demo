@@ -33,10 +33,10 @@ function resizeControls(event) {controlsOpen.value=event.matches}
 function dismissControls(event) {
   if(!controlsMedia.matches && (event.key==='Escape' || (event.type==='pointerdown' && !controlMenu.value?.contains(event.target)))) controlsOpen.value=false
 }
-// A successful switch starts a new shared session; cancellation preserves it.
+// Switching changes the shared active campus and preserves each campus session.
 async function selectCampus(event) {
   const id=event.target.value
-  if(id!==store.scene?.campusId && (!store.stats.total || window.confirm(ui.t('switchCampusConfirm')))) await store.switchScene(id)
+  if(id!==store.scene?.campusId) await store.switchScene(id)
   event.target.value=store.scene?.campusId
 }
 const connectionText=computed(()=>ui.t(!store.connected ? 'disconnected' : store.clock.paused ? 'paused':'connected'))

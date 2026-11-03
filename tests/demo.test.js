@@ -176,7 +176,7 @@ test('background campus loading keeps polling connected and resumes after refres
    return response({sceneSwitch:job})
   }
   if(url.endsWith('scene')) return response({version:completed?'v2':'v1',campusId:completed?'outdoor':'demo-campus',nodes:[],maps:[]})
-  return response(state(completed?'second':'first',{sceneVersion:completed?'v2':'v1',sceneSwitch:job}))
+  return response(state(completed?'second':'first',{campusId:completed?'outdoor':'demo-campus',sceneVersion:completed?'v2':'v1',sceneSwitch:job}))
  }
  const s=store();await s.refresh();await s.switchScene('outdoor')
  assert.equal(s.busy,true);assert.equal(s.connected,true)
@@ -184,4 +184,77 @@ test('background campus loading keeps polling connected and resumes after refres
  completed=true;job={...job,status:'completed'}
  await s.refresh();assert.equal(s.sessionId,'second');assert.equal(s.busy,false)
  assert.equal(s.scene.campusId,'outdoor')
+})
+
+
+test('A-B-A restores original session and tasks, reset retires only that campus', async () => {
+  let campus='A', resetA=false
+  const sessions=()=>campus==='A' ? (resetA?'A2':'A1'):'B1'
+  const scene=()=>({campusId:campus,version:'shared',nodes:[],maps:[]})
+  const snapshot=()=>state(sessions(),{campusId:campus,sceneVersion:'shared',
+    sceneSwitch:{status:'completed'},tasks:resetA && campus==='A'?[]:[{id:'T001',name:campus,status:'executing',startTime:0,finishTime:100}]})
+  globalThis.fetch=async(url,opts)=>{
+    if(url.endsWith('scene') && opts?.method==='POST') campus=JSON.parse(opts.body).sceneId
+    if(url.endsWith('reset')) resetA=true
+    return response(url.endsWith('scene') && opts?.method!=='POST' ? scene():snapshot())
+  }
+  const s=store();await s.refresh();s.selectTask('T001')
+  await s.switchScene('B');assert.equal(s.scene.campusId,'B');assert.equal(s.tasks[0].name,'B')
+  assert.equal(s.selectedTaskId,null)
+  await s.switchScene('A');assert.equal(s.sessionId,'A1');assert.equal(s.tasks[0].name,'A')
+  await s.control({},true);assert.equal(s.sessionId,'A2');assert.equal(s.tasks.length,0)
+  await s.switchScene('B');assert.equal(s.sessionId,'B1');assert.equal(s.tasks[0].name,'B')
+  await s.switchScene('A');assert.equal(s.sessionId,'A2');assert.equal(s.tasks.length,0)
+  // A delayed pre-reset snapshot cannot return after the reset has been observed.
+  globalThis.fetch=async()=>response(state('A1',{campusId:'A',sceneVersion:'shared'}))
+  await s.refresh();assert.equal(s.sessionId,'A2')
+})
+
+test('late polling and mismatched scene responses cannot replace a switched campus',async()=>{
+  let campus='A', finishOld, delayed=false
+  const snapshot=(id)=>state(id,{campusId:id,sceneVersion:'shared'})
+  globalThis.fetch=async(url,opts)=>{
+    if(url.endsWith('scene') && opts?.method==='POST') {campus=JSON.parse(opts.body).sceneId;return response(snapshot(campus))}
+    if(url.endsWith('scene')) return response({campusId:campus,version:'shared',nodes:[],maps:[]})
+    if(delayed) return new Promise(resolve=>{finishOld=()=>resolve(response(snapshot('A')))})
+    return response(snapshot(campus))
+  }
+  const s=store();await s.refresh();delayed=true
+  const old=s.refresh();await s.switchScene('B');finishOld();await old
+  assert.equal(s.scene.campusId,'B');assert.equal(s.snapshot.campusId,'B')
+  // Same sceneVersion is insufficient when campus identity does not match.
+  globalThis.fetch=async url=>response(url.endsWith('scene')?{campusId:'B',version:'shared'}:snapshot('C'))
+  await s.refresh();assert.equal(s.scene.campusId,'B');assert.equal(s.snapshot.campusId,'B')
+})
+
+test('rapid campus selections serialize while preparation is pending',async()=>{
+  let posts=0, finishSwitch
+  globalThis.fetch=async(url,opts)=>{
+    if(url.endsWith('scene') && opts?.method==='POST') {
+      posts++
+      return new Promise(resolve=>{finishSwitch=()=>resolve(response({sceneSwitch:{status:'loading',sceneId:'B'}}))})
+    }
+    return response(url.endsWith('scene')?{campusId:'A',version:'v1',nodes:[],maps:[]}:state('A1',{campusId:'A',sceneVersion:'v1'}))
+  }
+  const s=store();await s.refresh()
+  const pending=s.switchScene('B');await s.switchScene('C')
+  assert.equal(posts,1)
+  finishSwitch();await pending
+  await s.switchScene('C');assert.equal(posts,1);assert.equal(s.busy,true)
+})
+
+
+test('late startup scene fetch cannot replace the scene adopted by polling',async()=>{
+  let reads=0, finishStartup
+  const activeScene={campusId:'B',version:'vB',nodes:[],maps:[]}
+  globalThis.fetch=async url=>{
+    if(url.endsWith('scene')) {
+      if(++reads===1) return new Promise(resolve=>{finishStartup=()=>resolve(response({campusId:'A',version:'vA',nodes:[],maps:[]}))})
+      return response(activeScene)
+    }
+    return response(state('B1',{campusId:'B',sceneVersion:'vB'}))
+  }
+  const s=store(), startup=s.loadScene();await s.refresh();finishStartup()
+  assert.equal((await startup).campusId,'B')
+  assert.equal(s.scene.campusId,'B');assert.equal(s.snapshot.campusId,'B')
 })

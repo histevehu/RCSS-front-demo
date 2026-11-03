@@ -19,6 +19,7 @@ export const useAppStore = defineStore('app', () => {
   let receivedAt = 0, sequence = 0, applied = 0, generation = 0, polling = false
   let timer, uiTimer, scenePromise
   const retiredSessions = new Set()
+  const campusSessions = new Map()
   const sessionId = computed(() => snapshot.value?.sessionId)
   const clock = computed(() => snapshot.value?.clock || { now: 0, epoch: 0, paused: false, speed: 1 })
   function now() {
@@ -28,8 +29,10 @@ export const useAppStore = defineStore('app', () => {
   }
   function apply(data, seq, gen) {
     if (gen !== generation || seq < applied || retiredSessions.has(data.sessionId)) return false
-    if (sessionId.value && sessionId.value !== data.sessionId) {
-      retiredSessions.add(sessionId.value)
+    const previous = campusSessions.get(data.campusId)
+    if (previous && previous !== data.sessionId) retiredSessions.add(previous)
+    campusSessions.set(data.campusId, data.sessionId)
+    if (snapshot.value?.campusId !== data.campusId || sessionId.value !== data.sessionId) {
       selectedTaskId.value = null
     }
     applied = seq
@@ -41,8 +44,26 @@ export const useAppStore = defineStore('app', () => {
     return true
   }
   async function loadScene() {
-    if (!scenePromise) scenePromise = api('scene').then(data => { scene.value = data; return data }).catch(e => { scenePromise = null; throw e })
+    if (!scenePromise) scenePromise = api('scene').then(data => {
+      // A startup scene fetch may finish after polling adopted another campus.
+      if (snapshot.value) return scene.value
+      scene.value = data
+      return data
+    }).catch(e => { scenePromise = null; throw e })
     return scenePromise
+  }
+  async function applyWithScene(data, seq, gen) {
+    const stale = () => gen !== generation || seq < applied || retiredSessions.has(data.sessionId)
+    if (stale()) return false
+    let nextScene = scene.value
+    if (data.campusId !== nextScene?.campusId || data.sceneVersion !== nextScene?.version) {
+      nextScene = await api('scene')
+      if (stale() || nextScene.campusId !== data.campusId || nextScene.version !== data.sceneVersion) return false
+    }
+    // Publish the scene and its state together, after all asynchronous guards.
+    scene.value = nextScene
+    scenePromise = Promise.resolve(nextScene)
+    return apply(data, seq, gen)
   }
   async function refresh() {
     if (polling) return
@@ -50,13 +71,7 @@ export const useAppStore = defineStore('app', () => {
     const seq = ++sequence, gen = generation
     try {
       const data = await api('state')
-      if (gen !== generation || seq < applied || retiredSessions.has(data.sessionId)) return
-      if (data.sceneVersion !== scene.value?.version) {
-        const nextScene = await api('scene')
-        if (gen !== generation || seq < applied || nextScene.version !== data.sceneVersion) return
-        scene.value = nextScene; scenePromise = Promise.resolve(nextScene)
-      }
-      apply(data, seq, gen)
+      await applyWithScene(data, seq, gen)
     } catch (e) {
       if (gen === generation && seq >= applied) {
         const frozen = now()
@@ -79,7 +94,7 @@ export const useAppStore = defineStore('app', () => {
     const gen = ++generation, seq = ++sequence
     try {
       const data = await api(reset ? 'reset' : 'control', { sessionId: sessionId.value, ...body })
-      apply(data, seq, gen)
+      await applyWithScene(data, seq, gen)
       if (reset) selectedTaskId.value = null
     } catch (e) { error.value = e.message; await refresh() }
     finally { busy.value = false }
@@ -91,8 +106,8 @@ export const useAppStore = defineStore('app', () => {
     try {
       const data = await api('scene', { sessionId: sessionId.value, sceneId, requestId:crypto.randomUUID() })
       if (gen !== generation) return
-      if(data.sceneSwitch) snapshot.value={...snapshot.value,sceneSwitch:data.sceneSwitch}
-      else apply(data, ++sequence, gen)
+      if (data.sessionId) await applyWithScene(data, seq, gen)
+      else if (data.sceneSwitch) snapshot.value={...snapshot.value,sceneSwitch:data.sceneSwitch}
     } catch (e) { error.value = 'Campus data unavailable; current session preserved' }
     finally { busy.value = false }
   }

@@ -21,13 +21,13 @@ Open <http://127.0.0.1:3000>. Vite forwards `/api` to `http://127.0.0.1:8000`. T
 
 ## Repeatable presentation
 
-1. Click **重置演示 / Reset Demo**. The scene starts with eight idle robots and no historical tasks.
+1. Click **重置当前园区演示 / Reset Current Campus**. The scene starts with eight idle robots and no historical tasks.
 2. Click **新建任务 / New Task**, name the delivery and choose `4F · P1` → `5F · P3`. Submit.
 3. The selected order shows its assigned robot, execution duration, planned start/finish, full algorithm route and remaining time. The route includes the staircase between floors.
 4. Pause to explain the assignment; robot motion, progress and waiting counters stop together. Resume and switch to **5×** or **10×** to finish within the presentation.
 5. Switch to **任务 / Tasks** to show task filters, **Task Timeline (Gantt)** and **Task Logs**. Submit orders repeatedly to demonstrate queued work. Waiting orders display their reason, elapsed wait and expected start; they leave the queue when execution begins.
 6. Switch to **概览 / Overview** to show completion count, completion rate, average completion time and robot utilization changing with the same orders. Completed robots remain at their destinations.
-7. Reset to repeat. Refreshing the browser restores the current backend session; restarting the backend creates a new empty session.
+7. Reset the current campus to repeat. Switching campuses preserves each campus’s tasks, reservations, metrics and independent clock. Inactive campuses continue according to their pause/speed settings. Refreshing restores the active backend session; restarting the backend discards all campus sessions.
 
 The time shown is the simulation's clock in Asia/Shanghai. Remaining time is in simulated seconds; at 10×, ten simulated seconds take one real second. Average completion includes queue time. Completion rate is completed orders divided by all accepted orders, including failed orders. Utilization is the current fraction of executing robots. Overview places the summary and robots on the left, floor demand and waiting orders on the right, and scheduling metrics beneath the map. Tasks places records on the left and robots on the right.
 
@@ -36,7 +36,7 @@ The time shown is the simulation's clock in Asia/Shanghai. Remaining time is in 
 - Scheduling failures have a reason code, appear under **Failed**, and can be retried. They are not kept in Waiting Queue.
 - The form retains inputs and a request ID after a transport failure; retrying an unchanged order does not create another task.
 - On disconnection the displayed clock/motion freeze and a reconnect notice appears. After reconnection the UI adopts the backend's authoritative state.
-- Reset invalidates older requests and responses. One backend process maintains one shared demonstration for all connected browser tabs; it is not a multi-user production task service.
+- Reset invalidates older requests and responses. One backend process maintains a session per visited campus and one shared active campus for all connected browser tabs; it is not a multi-user production task service.
 - Scene diagnostics remain in `/demo/scene.warnings` for operators. They are not shown to end users.
 - Movement follows the scheduler's topology and timetable, including pickup/delivery holds; it does not demonstrate physical navigation or collision safety on real robots. Planning conflicts come from the selected real scheduler candidate. Missing elevator configuration is explicitly shown; no percentages or trends are invented.
 
@@ -63,7 +63,7 @@ Internal map/node identifiers remain in API data for planning and resource loadi
 
 The application defaults to **Chinese** and the **light theme**. The header switches Chinese / English and light / dark; the theme also updates the 3D scene, grid, points, routes and robot labels. These controls change frontend presentation only. User-entered names/notes and robot/location identifiers are preserved. **Log messages and log timestamps always remain English**, including when the surrounding interface is Chinese; planner failure diagnostics are displayed as safe English reason summaries. The backend API and log format are unchanged.
 
-Two distinct views share a persistent 3D workspace: **Overview / 概览** (`/`) presents the summary, robot roster, destination-floor distribution, waiting queue, and collapsible scheduling metrics. **Tasks / 任务** (`/tasks`) reserves the left rail for **Task overview / 任务概览** and **Task records / 任务记录**, with the robot roster on the right. Switching views does not replace the canvas, duplicate polling, reset the session or move the camera. The campus selector reads the backend catalogue: the current scene has one genuine **Demo Campus / 演示院区**; reselecting it has no destructive effect. Component maps never appear as campus options.
+Two distinct views share a persistent 3D workspace: **Overview / 概览** (`/`) presents the summary, robot roster, destination-floor distribution, waiting queue, and collapsible scheduling metrics. **Tasks / 任务** (`/tasks`) reserves the left rail for **Task overview / 任务概览** and **Task records / 任务记录**, with the robot roster on the right. Switching views does not replace the canvas, duplicate polling, reset the session or move the camera. The campus selector reads the backend catalogue: the catalogue includes **Demo Campus / 演示园区** and configured database campuses; switching preserves their sessions. Component maps never appear as campus options.
 
 Records default to all orders. Five compact status controls and all session status counts live in Task overview. Average completion is a separate aligned row. More filters opens a keyboard-accessible dialog for creation time, robot, task type, destination floor and destination location. Conditions intersect; dates use Asia/Shanghai and relative time follows the demo clock. Filters and selected-task links are stored in the URL. Clear conditions preserves status; Show all tasks clears status and dimensions. Overview counts, floor bars and destination rows open the corresponding task query; waiting orders open their execution details. The selected-task inspector stays above the bottom toolbar and never pushes task records down.
 
@@ -117,7 +117,7 @@ Task records show elapsed execution / planned execution duration and a thin prog
 顶部「园区」默认选择原有演示园区，可在无数据库环境运行。创投C座和室外
 使用后端数据库中的真实 PGM 地图、拓扑及指定机器人；不使用 Seer SMAP。
 真实园区的机器人地图分配、初始位置及后续执行均为模拟，不是实机遥测。
-园区切换成功会清空本场任务；加载失败保留当前场次并可重试，或选择演示园区。
+园区切换保留各自任务、预约、日志、统计和时钟，切回恢复原场次；离开后按各自暂停与倍速设置继续计时。仅“重置当前园区演示”清空当前园区，其他园区不受影响。首次加载失败保留当前场次并可重试。
 刷新浏览器保留后端当前园区，后端进程重启才恢复默认园区。
 
 园区加载通过后台作业执行，准备期间保留当前地图并显示阶段；状态轮询持续运行。

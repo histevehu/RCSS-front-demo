@@ -333,7 +333,7 @@ watch(()=>ui.preferences.theme,theme=>{
   }
 })
 // Rebuild only for an actual campus snapshot change, never for route tabs/polls.
-watch(()=>store.scene?.version, async (version, previous)=>{
+watch(()=>store.scene && `${store.scene.campusId}:${store.scene.version}`, async (version, previous)=>{
   if(!previous || version===previous) return
   ++buildGeneration
   renderer?.dispose(); renderer=null
