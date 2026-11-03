@@ -51,7 +51,7 @@ Backend regressions and API tests are documented in its `demo/README.md`. The `p
 
 ## Reading locations
 
-Orders, robot positions, routes and hover details use **Floor · Point**, such as `4F · P1`. Each floor has its own continuous numbering: 4F has P1–P11 and 5F has P1–P5. Start and End options are grouped by floor and sorted numerically. One physical location appears only once, including shared connection points. Moving robots show the points they are travelling between.
+Orders, robot positions, routes and hover details use **Floor · Point**, such as `4F · P1`. Each floor has its own continuous numbering: 4F has P1–P10 and 5F has P1–P5. Start and End options are grouped by floor and sorted numerically. One physical location appears only once, including shared connection points. Moving robots show the points they are travelling between.
 
 The staircase between floors is shown as `Stairs 4F–5F`, with internal waypoints S1–S5. It is not an extra floor or an order destination. **All Floors** includes the stairway; a single-floor view shows that floor and its landing.
 
