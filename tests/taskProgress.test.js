@@ -38,3 +38,8 @@ test('missing, zero, nonnumeric or nonfinite estimates never invent a percentage
     assert.equal(taskProgress({...assigned,duration}).percent,null)
   }
 })
+
+test('batch collection exposes no fabricated execution progress',()=>{
+  assert.deepEqual(taskProgress({status:'waiting',scheduleStage:'collecting'}),
+    {phase:'scheduling',elapsed:null,total:null,percent:null})
+})

@@ -1,5 +1,6 @@
 <template>
   <form @submit.prevent="handleSubmit" class="form-container">
+    <BatchControls />
     <div class="form-group">
       <label for="task-name" class="form-label">{{ ui.t('taskName') }}</label>
       <input id="task-name" v-model="form.name" type="text" required :placeholder="ui.t('namePlaceholder')" class="form-input">
@@ -54,14 +55,16 @@
     </div>
 
     <p v-if="submitError" role="alert" class="error-text">{{ ui.errorText(submitError) }}</p>
+    <label><input type="checkbox" v-model="keepOpen"> {{ ui.t('createAndContinue') }}</label>
     <div class="form-actions">
-      <button type="submit" class="btn-primary" :disabled="submitting || store.busy || !store.connected || !locationOptions.length">{{ ui.t(submitting ? 'submitting':'createTask') }}</button>
+      <button type="submit" class="btn-primary" :disabled="submitting || store.batchSaving || store.busy || !store.connected || !locationOptions.length">{{ ui.t(submitting ? 'submitting':store.batching.enabled ? 'joinBatch':'publishNow') }}</button>
       <button type="button" :disabled="submitting" @click="$emit('cancel')" class="btn-secondary">{{ ui.t('cancel') }}</button>
     </div>
   </form>
 </template>
 
 <script setup>
+import BatchControls from '../common/BatchControls.vue'
 import { reactive, computed, ref, watch } from 'vue'
 import { useAppStore } from '../../stores/appStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -97,6 +100,7 @@ const locationOptions = computed(() => store.locations.filter(location => locati
 const locationGroups = computed(() => [...new Set(locationOptions.value.map(location => location.floor))].sort((a,b) => a-b).map(floor => ({
   floor, locations: locationOptions.value.filter(location => location.floor === floor).sort((a,b) => Number(a.code.slice(1))-Number(b.code.slice(1)))
 })))
+const keepOpen=ref(true)
 const submitting = ref(false)
 const submitError = ref('')
 let pendingPayload, pendingRequest
@@ -109,7 +113,8 @@ async function handleSubmit() {
   if (serialized !== pendingPayload) { pendingPayload = serialized; pendingRequest = crypto.randomUUID() }
   try {
     const created = await store.addTask(task, pendingRequest)
-    emit('submit', created)
+    emit('submit', created, keepOpen.value)
+    if(keepOpen.value){form.name='';form.notes='';pendingPayload=null;pendingRequest=null}
   } catch (e) { submitError.value = e.message }
   finally { submitting.value = false }
 }

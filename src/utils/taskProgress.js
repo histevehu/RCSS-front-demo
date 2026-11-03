@@ -4,7 +4,7 @@
  */
 export function taskProgress(task) {
   if (task.status === 'failed') return { phase:'failed', elapsed:null, total:null, percent:null }
-  if (task.scheduleStage === 'scheduling') return { phase:'scheduling', elapsed:null, total:null, percent:null }
+  if (['collecting','scheduling'].includes(task.scheduleStage)) return { phase:'scheduling', elapsed:null, total:null, percent:null }
   const total = Number.isFinite(task.estimatedTime) && task.estimatedTime > 0 ? task.estimatedTime : null
   const elapsed = task.status === 'waiting' ? 0 : task.status === 'completed' ? total
     : Number.isFinite(task.duration) ? Math.max(0, task.duration) : null

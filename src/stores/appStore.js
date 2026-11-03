@@ -14,6 +14,18 @@ export const useAppStore = defineStore('app', () => {
   const operationBusy = ref(false)
   const sceneSwitch = computed(()=>snapshot.value?.sceneSwitch)
   const busy = computed({get:()=>operationBusy.value || sceneSwitch.value?.status==='loading',set:value=>{operationBusy.value=value}})
+  const realNow = ref(performance.now())
+  const batchSaving = ref(false), batchError = ref('')
+  const batching = computed(() => snapshot.value?.batching || {enabled:true,windowSeconds:10,collecting:null})
+  const batchRemaining = computed(() => Math.max(0,(batching.value.collecting?.remainingSeconds || 0) - (connected.value ? (realNow.value-receivedAt)/1000 : 0)))
+  async function saveBatch(body) {
+    if(batchSaving.value || busy.value || !connected.value) return
+    batchSaving.value=true; batchError.value=''
+    const gen=generation,seq=++sequence
+    try {await applyWithScene(await api('control',{sessionId:sessionId.value,...body}),seq,gen)}
+    catch(e) {batchError.value=e.message}
+    finally {batchSaving.value=false}
+  }
   const uiNow = ref(0)
   const maps = shallowRef([])
   let receivedAt = 0, sequence = 0, applied = 0, generation = 0, polling = false
@@ -38,6 +50,7 @@ export const useAppStore = defineStore('app', () => {
     applied = seq
     snapshot.value = data
     receivedAt = performance.now()
+    realNow.value = receivedAt
     uiNow.value = data.clock.now
     connected.value = true
     error.value = ''
@@ -85,7 +98,7 @@ export const useAppStore = defineStore('app', () => {
   function start() {
     refresh()
     timer = setInterval(refresh, 1000)
-    uiTimer = setInterval(() => { uiNow.value = now() }, 100)
+    uiTimer = setInterval(() => { uiNow.value = now(); realNow.value=performance.now() }, 100)
   }
   function stop() { clearInterval(timer); clearInterval(uiTimer); generation++ }
   async function control(body, reset = false) {
@@ -112,7 +125,7 @@ export const useAppStore = defineStore('app', () => {
     finally { busy.value = false }
   }
   async function addTask(task, requestId, retryTaskId) {
-    if (!connected.value || busy.value) throw new Error('Wait for the demo service to reconnect')
+    if (!connected.value || busy.value || batchSaving.value) throw new Error('Wait for the demo service to reconnect')
     const gen = generation
     const result = await api('tasks', { sessionId: sessionId.value, requestId, name: task.name,
       startNode: task.routeNodes[0], endNode: task.routeNodes[1], priority: task.priority,
@@ -180,7 +193,7 @@ export const useAppStore = defineStore('app', () => {
   function robotFloor(robot, time) { return robotLocation(robot, time).floor }
   function selectTask(id) { selectedTaskId.value = id; selectionVersion.value++ }
   function setMaps(data) { maps.value = data }
-  return { scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
+  return { batching, batchRemaining, batchSaving, batchError, saveBatch, scene, snapshot, sessionId, clock, uiNow, tasks, robots, stats, robotStats, taskLogs, waitingQueue,
     selectedTaskId, selectionVersion, selectedTask, currentTime, nodeById, locations, locationById, formatLocation, formatRoute, maps, connected, busy, error,
     sceneSwitch, loadScene, switchScene, start, stop, refresh, control, addTask, retryTask, selectTask, setMaps, getTasksByFilter, robotPosition, robotFloor, robotLocation, now }
 })

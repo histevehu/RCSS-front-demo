@@ -1,5 +1,5 @@
 <template>
-  <main class="workspace" :class="{'overview-page':isOverview,'left-hidden':!leftVisible,'right-hidden':!rightVisible,'summary-folded':ui.preferences.folds.summary,'records-folded':ui.preferences.folds.list,'robots-folded':ui.preferences.folds.robots,'distribution-folded':ui.preferences.folds.distribution,'queue-folded':ui.preferences.folds.queue}">
+  <main class="workspace" :class="{'overview-page':isOverview,'left-hidden':!leftVisible,'right-hidden':!rightVisible,'summary-folded':ui.preferences.folds.summary,'records-folded':ui.preferences.folds.list,'robots-folded':ui.preferences.folds.robots,'distribution-folded':ui.preferences.folds.distribution,'queue-folded':ui.preferences.folds.queue,'batch-on':store.batching.enabled}">
     <ConferenceMap />
     <Header :focus="focus" @focus="toggleFocus" />
     <button v-if="leftVisible" class="rail-toggle left-toggle" :aria-label="ui.t('hideLeft')" :aria-expanded="true" @click="toggleRail('left')">‹</button>
@@ -17,7 +17,7 @@
     </aside>
     <PlanningMetrics v-if="isOverview" v-show="!focus && (!mobile || mobilePanel==='metrics')" />
     <TaskInspector v-if="!isOverview && store.selectedTask" v-show="!mobile || !mobilePanel" :task="store.selectedTask" @layout-change="refocusSelection" />
-    <div class="left-dock"><button class="primary new-task-button" @click="showForm=true">＋ {{ ui.t('newTask') }}</button></div>
+    <div class="left-dock"><BatchControls /><button class="primary new-task-button" @click="showForm=true">＋ {{ ui.t('newTask') }}</button></div>
     <div class="mobile-drawers"><button :aria-expanded="mobilePanel==='left'" @click="toggleRail('left')">{{ ui.t(isOverview ? 'overview':'tasks') }}</button><button :aria-expanded="mobilePanel==='right'" @click="toggleRail('right')">{{ ui.t(isOverview ? 'distributionShort':'robots') }}</button><button v-if="isOverview" :aria-expanded="mobilePanel==='metrics'" @click="mobilePanel=mobilePanel==='metrics' ? null:'metrics'">{{ ui.t('metricsShort') }}</button></div>
     <Modal v-model="showForm" :title="ui.t('newTask')"><TaskForm @submit="created" @cancel="showForm=false" /></Modal>
     <Modal v-model="showGantt" :title="ui.t('timeline')" size="xl"><GanttChart /></Modal>
@@ -30,6 +30,7 @@ import {useRoute,useRouter} from 'vue-router'
 import {useAppStore} from '../stores/appStore'
 import {useUiStore} from '../stores/uiStore'
 import {normalizeTaskFilter} from '../utils/taskFilters.js'
+import BatchControls from '../components/common/BatchControls.vue'
 import Header from '../components/common/Header.vue'
 import Modal from '../components/common/Modal.vue'
 import CollapsiblePanel from '../components/common/CollapsiblePanel.vue'
@@ -67,7 +68,7 @@ function destinationTasks(criteria) {showRecords();router.push({name:'tasks',que
 /** Navigate first so route fitting measures the destination page's actual panels. */
 async function openTask(id) {await router.push({name:'tasks',query:{task:id}});await nextTick();store.selectTask(id)}
 function refocusSelection() {if(store.selectedTaskId) store.selectTask(store.selectedTaskId)}
-async function created(task) {showForm.value=false;focus.value=false;await openTask(task.id)}
+async function created(task,keepOpen=false) {if(keepOpen) return;showForm.value=false;focus.value=false;await openTask(task.id)}
 watch(()=>`${store.selectedTaskId}:${store.selectionVersion}`,()=>{if(store.selectedTaskId && mobile.value) mobilePanel.value=null},{flush:'post'})
 // Direct links and refreshes restore selection after the first authoritative poll.
 watch(()=>[route.name,route.query.task,store.sessionId],()=>{
@@ -102,7 +103,7 @@ onUnmounted(()=>media.removeEventListener('change',resized))
 .left-rail :deep([data-panel="summary"]>.panel-body) { padding:8px 12px; }.left-rail :deep([data-panel="summary"] .panel-heading) { min-height:36px; padding:6px 12px; }
 .rail-toggle { position:absolute; top:calc(var(--header-height) + 16px); z-index:12; height:32px; padding:4px 7px; font-size:16px; background:var(--surface); }.left-toggle { left:calc(var(--rail-width) + 20px); }.right-toggle { right:calc(var(--rail-width) + 20px); }
 .collapsed-rail { position:absolute; z-index:12; top:calc(var(--header-height) + 16px); width:160px; display:flex; flex-direction:column; gap:6px; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }.collapsed-left { left:16px; }.collapsed-right { right:16px; }.collapsed-rail>strong { color:var(--muted); font-size:12px; font-weight:500; margin-bottom:2px; }.collapsed-rail>button { display:flex; align-items:center; gap:6px; padding:7px 6px; text-align:left; min-height:36px; font-size:12px; }.collapsed-rail>button>span:first-child:not([aria-hidden]) { flex:1; }.collapsed-right>button>span:nth-child(2) { flex:1; }
-.left-dock { position:absolute; z-index:12; left:16px; bottom:16px; width:var(--rail-width); }.new-task-button { width:100%; height:40px; }.left-hidden .left-dock { width:160px; }
+.left-rail { bottom:154px; }.batch-on .left-rail { bottom:248px; }.left-dock { display:flex;flex-direction:column;gap:8px; position:absolute; z-index:12; left:16px; bottom:16px; width:var(--rail-width); }.new-task-button { width:100%; height:40px; }.left-hidden .left-dock { width:var(--rail-width); }
 .task-actions { display:flex; gap:8px; padding:10px 12px 0; flex:none; }.task-actions button { flex:1; font-size:12px; min-height:32px; }.mobile-drawers { display:none; }
 @media(min-width:1440px) { .workspace { --rail-width:300px; } }
 @media(min-width:801px) and (max-width:1199px) { .workspace { --rail-width:250px; } }
@@ -110,7 +111,8 @@ onUnmounted(()=>media.removeEventListener('change',resized))
  .workspace,.workspace.left-hidden,.workspace.right-hidden { --left-space:16px; --right-space:16px; --summary-row:172px; }.workspace.summary-folded { --summary-row:44px; }
  .workspace-rail { inset:auto 16px 116px; width:auto; height:min(650px,calc(100dvh - var(--header-height) - 148px)); }.right-rail,.overview-page .right-rail { bottom:116px; }.left-rail { gap:8px; }.rail-toggle,.collapsed-rail { display:none; }
  .overview-page { --distribution-row:minmax(190px,.9fr); }.overview-page.distribution-folded { --distribution-row:44px; }.overview-page.queue-folded { --queue-row:44px; }
- .left-dock,.left-hidden .left-dock { left:16px; bottom:16px; width:124px; }.new-task-button { height:44px; }
+ .left-dock,.left-hidden .left-dock { left:16px; bottom:68px; width:calc(100% - 32px); }.workspace-rail,.left-rail {bottom:220px;height:calc(100dvh - var(--header-height) - 245px)}.batch-on .workspace-rail,.batch-on .left-rail{bottom:324px;height:calc(100dvh - var(--header-height) - 349px)}.task-inspector{bottom:324px}.new-task-button { height:44px; }
+ .workspace :deep(.map-tools) {bottom:180px}.workspace.batch-on :deep(.map-tools){bottom:280px}
  .mobile-drawers { position:absolute; bottom:16px; right:16px; display:flex; gap:5px; z-index:12; }.mobile-drawers button { height:44px; background:var(--surface); padding:5px 9px; }
 }
 @media(max-width:440px) { .mobile-drawers { gap:4px; }.mobile-drawers button { font-size:12px; } }
