@@ -7,6 +7,7 @@ export const messages = {
     robotCapabilities:'支持能力', currentLocation:'当前位置', switchingCampus:'正在切换园区', switch_configuration:'读取配置', switch_assets:'获取地图', switch_validation:'校验建图', switch_commit:'提交场次',
     mapResourceTimeout:'远程地图连接或下载超时，重试后仍未成功。当前场次已保留。', mapResourceConnection:'远程地图网络连接失败，当前场次已保留。', mapResourceHttp:'地图存储服务拒绝请求或暂时不可用，当前场次已保留。', campusPreparationTimeout:'园区准备超过时限，当前场次已保留。', retryCampus:'重试切换',
     elevatorCategory:'电梯', elevatorBooking:'电梯预约',
+    CONFLICT_UNRESOLVED:'通道或等待位置被占用，暂时没有安全执行计划',
     taskUrgency:'紧急程度', assignedRobot:'分配机器人',
     stairCategory:'楼梯', idleRobot:'空闲机器人', executionDuration:'执行耗时', executionProgress:'执行进度', awaitScheduling:'等待调度',
     campus:'园区', loadingCampus:'加载园区…', switchCampusConfirm:'切换园区将清空本场任务和统计，是否继续？', workspacePages:'工作页面', demoControls:'演示控制', dispatchArea:'调度概况', distributionShort:'分布', metricsShort:'指标',
@@ -44,6 +45,7 @@ export const messages = {
     robotCapabilities:'Capabilities', currentLocation:'Current location', switchingCampus:'Switching campus', switch_configuration:'Reading configuration', switch_assets:'Fetching maps', switch_validation:'Validating topology', switch_commit:'Committing session',
     mapResourceTimeout:'Remote map connection or download timed out after retries. Current session preserved.', mapResourceConnection:'Remote map connection failed. Current session preserved.', mapResourceHttp:'Map storage rejected the request or is unavailable. Current session preserved.', campusPreparationTimeout:'Campus preparation exceeded its deadline. Current session preserved.', retryCampus:'Retry switch',
     elevatorCategory:'Elevator', elevatorBooking:'Elevator booking',
+    CONFLICT_UNRESOLVED:'No safe plan: corridor or waiting position is occupied',
     taskUrgency:'Priority', assignedRobot:'Assigned robot',
     stairCategory:'Stairs', idleRobot:'Idle robot', executionDuration:'Execution time', executionProgress:'Execution progress', awaitScheduling:'Awaiting scheduling',
     campus:'Campus', loadingCampus:'Loading campus…', switchCampusConfirm:'Switch campus and clear this session’s tasks and statistics?', workspacePages:'Workspace pages', demoControls:'Demo controls', dispatchArea:'Dispatch overview', distributionShort:'Demand', metricsShort:'Metrics',
@@ -83,7 +85,7 @@ export function durationLabel(value, locale) {
   return locale === 'zh-CN' ? result.replace('m','分').replace('s','秒') : result
 }
 export function publicText(value, locale) {
-  return String(value ?? '').replaceAll('Stairs 4F–5F', translate(locale,'stairs')).replaceAll('Elevator E1 · 4F–5F', locale==='zh-CN' ? '电梯 E1 · 4F–5F':'Elevator E1 · 4F–5F').replaceAll('Unknown location',translate(locale,'unavailable')).replaceAll('Pending',translate(locale,'pending'))
+  return String(value ?? '').replaceAll('Stairs 4F–5F', translate(locale,'stairs')).replaceAll('Elevator E1 · 4F–5F', locale==='zh-CN' ? '电梯 E1 · 4F–5F':'Elevator E1 · 4F–5F').replaceAll('Parking ',locale==='zh-CN' ? '停车位 ':'Parking ').replaceAll('Unknown location',translate(locale,'unavailable')).replaceAll('Pending',translate(locale,'pending'))
 }
 export function errorLabel(value, locale) {
   if (!value) return ''
@@ -100,7 +102,7 @@ export function taskReason(task, locale) {
 // Logs always stay English, regardless of the UI locale. Never expose raw planner diagnostics.
 export function englishLogMessage(log) {
   if (log.type !== 'failed') return log.message
-  const code = log.message?.match(/\b(NO_ROBOTS|NO_CAPABLE_ROBOT|LOW_BATTERY|ROBOT_CHARGING|MAP_NOT_ALLOWED|NODE_NOT_FOUND|PATH_UNREACHABLE|NO_FEASIBLE_ROBOT|SCHEDULE_FAILED)\b/)?.[1] || 'SCHEDULE_FAILED'
+  const code = log.message?.match(/\b(NO_ROBOTS|NO_CAPABLE_ROBOT|LOW_BATTERY|ROBOT_CHARGING|MAP_NOT_ALLOWED|NODE_NOT_FOUND|PATH_UNREACHABLE|NO_FEASIBLE_ROBOT|CONFLICT_UNRESOLVED|SCHEDULE_FAILED)\b/)?.[1] || 'SCHEDULE_FAILED'
   return `${log.taskId || 'Task'}: ${translate('en-US',code)}`
 }
 

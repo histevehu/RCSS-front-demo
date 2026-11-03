@@ -79,3 +79,9 @@ test('capability names are localized without exposing unknown internal codes',as
   assert.equal(capabilityLabel('demo_document','en-US'),'Document transport')
   assert.equal(capabilityLabel('private-code','zh-CN'),'能力信息不可用')
 })
+
+test('parking and occupancy failures remain clear in both languages',()=>{
+ assert.equal(publicText('4F · Parking R1','zh-CN'),'4F · 停车位 R1')
+ assert.equal(publicText('4F · Parking R1','en-US'),'4F · Parking R1')
+ assert.equal(englishLogMessage({type:'failed',taskId:'T001',message:'T001: CONFLICT_UNRESOLVED'}),'T001: No safe plan: corridor or waiting position is occupied')
+})

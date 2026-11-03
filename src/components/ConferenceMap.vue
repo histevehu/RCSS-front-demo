@@ -242,15 +242,17 @@ function drawRobotLabel(canvas, id, status) {
 function makeRobot(id) {
   const mesh = new THREE.Group()
   const color=mapThemes[ui.preferences.theme].robot
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .8, 16), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .3, transparent:true, opacity:.65, depthWrite:false }))
+  // Use the planner body diameter so the visible footprint matches clearance checks.
+  const radius=(store.robots.find(robot=>robot.id===id)?.bodyWidth || .6)/2
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, .8, 16), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .3, transparent:true, opacity:.65, depthWrite:false }))
   body.renderOrder=1100
   body.material.depthTest=false
   body.name='robot-body'
   body.userData.themeRole='robot'
   mesh.add(body)
-  const front = new THREE.Mesh(new THREE.ConeGeometry(.23, .6, 3), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent:true, opacity:.7, depthWrite:false }))
+  const front = new THREE.Mesh(new THREE.ConeGeometry(radius*.45, radius*.7, 3), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent:true, opacity:.7, depthWrite:false }))
   front.renderOrder=1101; front.material.depthTest=false
-  front.rotation.x = Math.PI / 2; front.position.z = .5; mesh.add(front)
+  front.rotation.x = Math.PI / 2; front.position.z = radius*.5; mesh.add(front)
   const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 64
   drawRobotLabel(canvas, id)
   const texture=new THREE.CanvasTexture(canvas); texture.colorSpace=THREE.SRGBColorSpace
