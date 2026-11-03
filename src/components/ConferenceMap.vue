@@ -11,6 +11,7 @@
       <button @click="renderer?.fitCamera()">{{ ui.t('resetView') }}</button>
       <details class="tool-menu map-legend"><summary>{{ ui.t('legend') }}</summary><div class="tool-popover legend-content">
         <div><i class="legend-node"></i><span>{{ ui.t('navigationPoint') }}</span></div>
+        <div><i class="legend-elevator"></i><span>{{ ui.t('elevatorCategory') }}</span></div>
         <div><i class="legend-portal"></i><span>{{ ui.t('stairCategory') }}</span></div>
         <div><i class="legend-robot"></i><span>{{ ui.t('idleRobot') }}</span></div>
         <div><i class="legend-executing"></i><span>{{ ui.t('executingRobot') }}</span></div>
@@ -59,7 +60,7 @@ const tooltip = computed(() => {
     const place = store.locationById[node.locationId]
     if (!place) return null
     return {title:ui.display(place.label), rows:[[ui.t('location'), ui.display(place.floorLabel)], [ui.t('point'),place.code],
-      [ui.t('type'),ui.t(place.kind === 'stairs' ? 'stairPoint':'navigationPoint')],
+      [ui.t('type'),ui.t(place.kind === 'elevator' ? 'elevatorCategory':place.kind === 'stairs' ? 'stairPoint':'navigationPoint')],
       [ui.t('neighbours'),place.neighbours.map(id => ui.display(store.locationById[id]?.label || 'Unknown location')).join(', ') || '—'],
       [ui.t('position'),coordinates(place.position)]]}
   }
@@ -160,6 +161,23 @@ async function initialize() {
     await activeRenderer.render(true)
     if(dead || build!==buildGeneration) { activeRenderer.dispose(); return }
     activeRenderer.setTheme(ui.preferences.theme)
+    // A translucent shaft makes the explicit E1 vertical connection visible even
+    // before an order is selected. The selected route is still algorithm output.
+    for(const elevator of scene.elevators || []) {
+      const points=elevator.nodeIds.map(id=>vector(store.nodeById[id].position,.3))
+      const height=Math.abs(points[1].y-points[0].y)
+      const shaft=new THREE.Mesh(new THREE.BoxGeometry(.7,height,.7),new THREE.MeshBasicMaterial({color:0x4399ed,transparent:true,opacity:.16,depthWrite:false}))
+      shaft.position.copy(points[0]).add(points[1]).multiplyScalar(.5)
+      const outline=new THREE.LineSegments(new THREE.EdgesGeometry(shaft.geometry),new THREE.LineBasicMaterial({color:0x4399ed,transparent:true,opacity:.8}))
+      shaft.add(outline); activeRenderer.scene.add(shaft)
+      shaft.userData.elevatorShaft=true
+      const topology=new THREE.Group();topology.name='topoLines'
+      const edge=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(points[0],points[1]),12,.045,8,false),new THREE.MeshStandardMaterial({color:0x4399ed,emissive:0x4399ed,emissiveIntensity:.3,transparent:true,opacity:.8}))
+      edge.userData.topologyNodeIds=elevator.nodeIds
+      topology.add(edge)
+      const group=new THREE.Group();group.add(topology);group.userData.elevatorShaft=true
+      activeRenderer.scene.add(group);activeRenderer.mapGroups.set(`elevator-${elevator.id}`,group)
+    }
     renderer.onFrame = updateFrame
     const canvas = renderer.renderer.domElement
     canvas.addEventListener('pointermove', pointerMove)
@@ -295,6 +313,7 @@ function updateFrame() {
   }
 }
 watch(floor, value => {
+  renderer?.scene.traverse(object=>{if(object.userData.elevatorShaft) object.visible=value==='all'})
   clearHover()
   for (const m of store.maps) {
     m.visible = value === 'all' || (m.mapType !== 'stair' && String(m.floor) === value)
@@ -340,6 +359,8 @@ onUnmounted(() => {
 })
 </script>
 <style scoped>
+.legend-elevator { background:#176bc1; border-radius:2px; width:10px; height:10px; display:inline-block; }
+:global(:root[data-theme="dark"]) .legend-elevator { background:#65b5ff; }
 .conference-map,.map-canvas { position:absolute; inset:0; }
 .map-message { position:absolute; inset:0; display:flex; gap:16px; align-items:center; justify-content:center; background:var(--bg); color:var(--text); }
 .map-tools { position:absolute; z-index:15; bottom:16px; left:var(--left-space,320px); right:var(--right-space,320px); display:flex; justify-content:center; gap:6px; align-items:center; flex-wrap:wrap; pointer-events:none; }

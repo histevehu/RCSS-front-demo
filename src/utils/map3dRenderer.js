@@ -646,7 +646,7 @@ export class Map3DRenderer {
     const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial)
     cylinder.renderOrder=1050
     cylinder.material.depthTest=false
-    if(wp.markerColor !== undefined) cylinder.userData.themeRole=wp.displayKind === 'stairs' ? 'stair':'node'
+    if(wp.markerColor !== undefined) cylinder.userData.themeRole=wp.displayKind === 'elevator' ? 'elevator':wp.displayKind === 'stairs' ? 'stair':'node'
     cylinder.position.y = 0.3
     cylinder.castShadow = true
     markerGroup.add(cylinder)
@@ -666,14 +666,14 @@ export class Map3DRenderer {
     const ring = new THREE.Mesh(ringGeometry, ringMaterial)
     ring.renderOrder=1051
     ring.material.depthTest=false
-    if(wp.markerColor !== undefined) ring.userData.themeRole=wp.displayKind === 'stairs' ? 'stair':'node'
+    if(wp.markerColor !== undefined) ring.userData.themeRole=wp.displayKind === 'elevator' ? 'elevator':wp.displayKind === 'stairs' ? 'stair':'node'
     ring.position.y = 0.55
     ring.rotation.x = Math.PI / 2
     markerGroup.add(ring)
 
     // 仅使用用户地点名；共享地点随规范标记只绘制一次，隐藏楼层也同时隐藏标签。
     if (wp.displayLabel) {
-      const role=wp.displayKind === 'stairs' ? 'stair':'node'
+      const role=wp.displayKind === 'elevator' ? 'elevator':wp.displayKind === 'stairs' ? 'stair':'node'
       const label=createWaypointLabel(wp.displayLabel,mapThemes[this.theme || 'light'][role],this.theme || 'light')
       label.userData.labelRole=role
       sizeWaypointLabel(label,this.camera,this.container.clientHeight)

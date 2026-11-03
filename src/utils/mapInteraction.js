@@ -4,7 +4,7 @@ export const NAVIGATION_COLOR = 0x00b894
 export const CONNECTION_COLOR = 0xa29bfe
 
 export function waypointColor(waypoint) {
-  return waypoint.displayKind === 'stairs' ? CONNECTION_COLOR : NAVIGATION_COLOR
+  return waypoint.displayKind === 'elevator' ? 0x176bc1 : waypoint.displayKind === 'stairs' ? CONNECTION_COLOR : NAVIGATION_COLOR
 }
 
 // Marker metadata lives on the parent group, while raycasts hit its meshes or label.

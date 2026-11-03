@@ -17,6 +17,7 @@
       <progress :value="task.duration" :max="task.estimatedTime || 1" :aria-label="ui.t('elapsed')"></progress>
     </template>
     <p v-else :class="{'error-text':task.status==='failed'}">{{ ui.reason(task) }}</p>
+    <div v-for="(booking,index) in task.elevatorBookings || []" :key="index" class="field-row"><span>{{ ui.t('elevatorBooking') }}</span><span>E1 · {{ booking.fromFloor }}F → {{ booking.toFloor }}F · {{ ui.time(booking.start,store.clock.epoch) }}–{{ ui.time(booking.end,store.clock.epoch) }}</span></div>
     <p class="route-text">{{ ui.display(store.formatRoute(task.path?.length ? task.path : task.routeNodes)) }}</p>
     <button v-if="task.status==='failed'" :disabled="!store.connected || store.busy" @click="store.retryTask(task)">{{ ui.t('retry') }}</button>
   </div>

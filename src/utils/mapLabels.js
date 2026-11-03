@@ -39,11 +39,16 @@ export function sizeWaypointLabel(label, camera, height) {
 
 /** 缩远时只隐藏互相覆盖的文字，节点本身始终可见；放大后自动恢复。 */
 export function layoutWaypointLabels(groups, camera, width, height) {
-  const occupied = []
+  const occupied = [], candidates=[]
   for (const group of groups.values()) {
     if (!group.visible) continue
     group.getObjectByName('waypoints')?.traverse(label => {
-      if (label.name !== 'waypoint-label') return
+      if (label.name === 'waypoint-label') candidates.push(label)
+    })
+  }
+  // Keep infrastructure labels readable beside their nearby navigation point.
+  candidates.sort((a,b)=>Number(b.userData.labelRole==='elevator')-Number(a.userData.labelRole==='elevator'))
+  for(const label of candidates) {
       sizeWaypointLabel(label, camera, height)
       const point = label.getWorldPosition(camera.position.clone()).project(camera)
       const w = 20 * label.userData.labelAspect
@@ -52,6 +57,5 @@ export function layoutWaypointLabels(groups, camera, width, height) {
       label.visible = point.z >= -1 && point.z <= 1 && !occupied.some(other =>
         box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top)
       if (label.visible) occupied.push(box)
-    })
   }
 }
