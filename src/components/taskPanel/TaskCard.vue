@@ -2,6 +2,7 @@
   <button class="task-card" :data-task-id="task.id" :aria-pressed="isSelected" :class="{selected:isSelected}" @click="$emit('select',task.id)">
     <div><strong>{{ task.id }} · {{ task.name }}</strong><span :class="`status-${task.status}`">{{ ui.t(task.status) }}</span></div>
     <dl class="task-meta">
+      <div class="type-field"><dt>{{ ui.t('taskType') }}:</dt><dd>{{ task.taskType ? ui.t(task.taskType) : '—' }}</dd></div>
       <div><dt>{{ ui.t('taskUrgency') }}:</dt><dd :class="{'urgent-priority':task.priority==='urgent'}">{{ ui.t(task.priority) }}</dd></div>
       <div><dt>{{ ui.t('assignedRobot') }}:</dt><dd>{{ task.robotId || ui.t('unassigned') }}</dd></div>
       <div class="finish-field"><dt>{{ ui.t('plannedFinish') }}:</dt><dd>{{ Number.isFinite(task.finishTime) ? ui.time(task.finishTime,store.clock.epoch) : '—' }}</dd></div>
@@ -32,6 +33,7 @@ const progress=computed(()=>taskProgress(props.task))
 .task-meta { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:4px 10px; margin:6px 0 0; font-size:12px; line-height:1.5; }
 .task-meta>div { display:flex; align-items:baseline; gap:4px; flex-wrap:wrap; min-width:0; }
 .task-meta dt { color:var(--muted); white-space:nowrap; }.task-meta dd { margin:0; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.task-meta .type-field { grid-column:1/-1; }.task-meta .type-field dd { white-space:normal; overflow-wrap:anywhere; }
 .task-meta .finish-field { grid-column:1/-1; }.task-meta .urgent-priority { color:var(--danger); }
 .execution-progress { margin-top:7px; }
 .execution-progress .duration-row { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:2px 8px; margin:0; }
