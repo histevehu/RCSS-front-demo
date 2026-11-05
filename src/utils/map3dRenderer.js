@@ -904,28 +904,33 @@ export class Map3DRenderer {
     this.camera.updateMatrixWorld()
   }
 
-  fitCamera() {
-    const box = this.getVisibleBounds()
-    if (!box) return
+  /** Fit rendered map content tightly into the unobstructed UI viewport. */
+  fitCamera(viewport = this.viewportProvider?.()) {
+    const box = new THREE.Box3()
+    // Rendered floor/wall bounds exclude the PGM's empty border and world grid.
+    for(const group of this.mapGroups.values()) {
+      if(!group.visible) continue
+      group.updateWorldMatrix(true,true)
+      group.traverse(object=>{
+        if(object.isInstancedMesh) object.computeBoundingBox()
+      })
+      box.expandByObject(group)
+    }
+    if(box.isEmpty()) return
+    const size=this.renderer.domElement.getBoundingClientRect()
+    viewport ||= {width:size.width,height:size.height,left:24,right:size.width-24,top:24,bottom:size.height-24}
+    const points=[]
+    for(const x of [box.min.x,box.max.x]) for(const y of [box.min.y,box.max.y]) for(const z of [box.min.z,box.max.z]) points.push(new THREE.Vector3(x,y,z))
+    const pose=fitRouteCamera(this.camera,points,viewport,box.max.y+2)
+    if(!pose) return
     discardControlMomentum(this.controls)
-    configureMapControls(this.controls, box)
-
-    const center = box.getCenter(new THREE.Vector3())
-    const size = box.getSize(new THREE.Vector3())
-    const maxDim = Math.max(size.x, size.y, size.z)
-
-    // 2) 默认稍微拉远一点（更接近你想要的“第二张图”效果）
-    const distance = maxDim * 2.0
-
-    // 相机位置
-    this.camera.position.set(
-      center.x + distance * 0.5,
-      center.y + distance * 0.6,
-      center.z + distance * 0.5
-    )
-
-    this.controls.target.copy(center)
+    configureMapControls(this.controls, this.getVisibleBounds())
+    this.controls.target.copy(pose.target)
+    this.controls.cursor.y=pose.target.y
+    this.camera.position.copy(pose.position)
+    this.controls.maxDistance=Math.max(this.controls.maxDistance,pose.distance*2)
     this.controls.update()
+    this.camera.updateMatrixWorld()
     this.controls.saveState()
   }
 

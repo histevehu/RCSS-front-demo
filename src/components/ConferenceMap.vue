@@ -160,7 +160,7 @@ async function initialize() {
     if (dead || build!==buildGeneration) return
     store.setMaps(prepared.maps)
     renderer = new Map3DRenderer(container.value, {showCrossMapLinks:false})
-    renderer.init(); renderer.allMaps=prepared.maps; renderer.preparedIndoor=prepared.indoor;
+    renderer.init(); renderer.viewportProvider=routeViewport; renderer.allMaps=prepared.maps; renderer.preparedIndoor=prepared.indoor;
     const activeRenderer=renderer
     await activeRenderer.render(true)
     if(dead || build!==buildGeneration) { activeRenderer.dispose(); return }
@@ -210,7 +210,8 @@ async function initialize() {
     canvas.addEventListener('pointercancel', pointerCancel)
     renderer.controls.addEventListener('change', clearHover)
     loading.value = false
-    focusSelectedTask()
+    await nextTick()
+    requestAnimationFrame(()=>{ if(!dead && renderer===activeRenderer) { renderer.fitCamera(); focusSelectedTask() } })
   } catch (e) { if(dead || build!==buildGeneration) return; failure.value = 'The map could not be loaded. Please retry.'; loading.value = false }
 }
 /** 根据面板实际位置预留画布空间，手机抽屉占用底部，桌面侧栏占用两侧。 */

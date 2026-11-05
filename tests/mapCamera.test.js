@@ -1,3 +1,5 @@
+import {isRouteInView} from '../src/utils/routeCamera.js'
+import {Group, Mesh, BoxGeometry} from 'three'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { Box3, Vector3, PerspectiveCamera, Plane, Ray } from 'three'
@@ -109,10 +111,19 @@ test('Reset View discards remaining drag inertia and returns to a stable safe ov
   renderer.camera = camera
   renderer.controls = controls
   renderer.getVisibleBounds = () => bounds
+  const group = new Group()
+  const mesh = new Mesh(new BoxGeometry(60, 14, 60))
+  mesh.position.set(0, 7, 0); group.add(mesh)
+  renderer.mapGroups = new Map([['map',group]])
+  renderer.renderer = {domElement:{getBoundingClientRect:()=>({width:1440,height:900})}}
   // These are the same pending deltas accumulated by mouse/touch gestures.
   controls._sphericalDelta.set(0, .7, .3)
   controls._panOffset.set(20, 0, -20)
-  renderer.fitCamera()
+  const viewport={width:1440,height:900,left:340,right:1100,top:80,bottom:660}
+  renderer.fitCamera(viewport)
+  const corners=[]
+  for(const x of [-30,30]) for(const y of [0,14]) for(const z of [-30,30]) corners.push(new Vector3(x,y,z))
+  assert.ok(isRouteInView(camera,corners,viewport,0))
   const resetPosition = camera.position.clone(), resetTarget = controls.target.clone()
   for (let i = 0; i < 120; i++) controls.update()
   assert.ok(camera.position.distanceTo(resetPosition) < 1e-6)
