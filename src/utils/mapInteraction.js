@@ -34,6 +34,8 @@ export function describeRobotLocation(robot, tasks, nodeById, time, initialNodeI
   for (let i = 0; i < table.length && table[i].arrival <= time; i++) index = i
   const current = nodeById[table[index]?.nodeId] || nodeById[initialNodeId] || nodeById[robot.position?.nodeId]
   const next = nodeById[table[index + 1]?.nodeId]
+  const lane = current?.displayKind==='lane' ? current : next?.displayKind==='lane' ? next : null
+  if(lane && time < task.finishTime) return {floor:lane.displayFloor,floorLabel:lane.floorLabel,nodeText:locationLabel(nodeById,lane.id),label:locationLabel(nodeById,lane.id),inTransit:true,nodeId:lane.id,taskId:task.id}
   const inTransit = !!(current?.locationId && next?.locationId && current.locationId !== next.locationId &&
     index >= 0 && time >= table[index].depart && time < table[index + 1].arrival)
   const floor = current?.displayFloor ?? null

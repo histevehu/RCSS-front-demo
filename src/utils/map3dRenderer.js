@@ -712,6 +712,7 @@ export class Map3DRenderer {
    * 渲染同图内 TOPO 连线
    */
   renderTopoLines(group, map) {
+    if(map.explicitNavigation) return
     const wpByCode = {}
     map.waypoints.forEach(wp => { wpByCode[wp.code] = wp })
 

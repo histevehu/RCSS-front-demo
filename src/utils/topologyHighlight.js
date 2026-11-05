@@ -7,6 +7,7 @@ const edgeKey = (a, b) => JSON.stringify([a, b].sort())
  */
 export function highlightTopologyPath(mapGroups, path, color) {
   const edges = new Set((path || []).slice(1).map((id, index) => edgeKey(path[index], id)))
+  const directedEdges = new Set((path || []).slice(1).map((id,index)=>JSON.stringify([path[index],id])))
   const segments = []
   for (const group of mapGroups.values()) {
     group.updateWorldMatrix(true, true)
@@ -21,7 +22,7 @@ export function highlightTopologyPath(mapGroups, path, color) {
         transparent:material.transparent, depthTest:material.depthTest,
         depthWrite:material.depthWrite, renderOrder:line.renderOrder,
       }
-      const selected = group.visible && edges.has(edgeKey(...ids))
+      const selected = group.visible && (line.userData.directed ? directedEdges.has(JSON.stringify(ids)) : edges.has(edgeKey(...ids)))
       material.color.setHex(selected ? color : original.color)
       material.emissive.setHex(selected ? color : original.emissive)
       material.emissiveIntensity = selected ? .8 : original.emissiveIntensity
@@ -32,6 +33,7 @@ export function highlightTopologyPath(mapGroups, path, color) {
       material.depthWrite = selected ? false : original.depthWrite
       line.renderOrder = selected ? 1000 : original.renderOrder
       material.needsUpdate = true
+      for(const arrow of line.children) if(arrow.userData.directionArrow) arrow.material.color.copy(material.color)
       if (!selected) continue
       const points = line.geometry.parameters.path.getPoints(16).map(point => line.localToWorld(point))
       for (let index = 1; index < points.length; index++) segments.push([points[index-1], points[index]])

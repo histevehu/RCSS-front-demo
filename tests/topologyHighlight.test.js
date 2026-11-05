@@ -34,3 +34,12 @@ test('changing tasks, hiding a floor and deselection restore original edge style
     assert.equal(line.material.depthTest,true);assert.equal(line.renderOrder,0)
   }
 })
+
+test('directed lanes highlight only the requested travel direction',()=>{
+  const {groups,lines}=scene()
+  lines[0].userData.directed=true
+  highlightTopologyPath(groups,['b','a'],0xfacc15)
+  assert.equal(lines[0].material.color.getHex(),0x74b9ff)
+  highlightTopologyPath(groups,['a','b'],0xfacc15)
+  assert.equal(lines[0].material.color.getHex(),0xfacc15)
+})

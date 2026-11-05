@@ -10,6 +10,7 @@
       <details class="tool-menu"><summary>{{ ui.t('objects') }}</summary><div class="tool-popover object-options"><label><input v-model="showRobots" type="checkbox"> {{ ui.t('robots') }}</label><label><input v-model="showRoute" type="checkbox"> {{ ui.t('route') }}</label></div></details>
       <button @click="renderer?.fitCamera()">{{ ui.t('resetView') }}</button>
       <details class="tool-menu map-legend"><summary>{{ ui.t('legend') }}</summary><div class="tool-popover legend-content">
+        <div v-if="store.scene?.navigationEdges">→ {{ ui.t('laneCategory') }} · ↔ {{ ui.t('sharedCategory') }}</div>
         <div><i class="legend-node"></i><span>{{ ui.t('navigationPoint') }}</span></div>
         <div><i class="legend-elevator"></i><span>{{ ui.t('elevatorCategory') }}</span></div>
         <div><i class="legend-portal"></i><span>{{ ui.t('stairCategory') }}</span></div>
@@ -144,7 +145,7 @@ async function initialize() {
       if (!pgmResponse.ok || !yamlResponse.ok) throw new Error('Map assets are unavailable. Please retry.')
       const buffer = await pgmResponse.arrayBuffer()
       const config = yaml.load(await yamlResponse.text())
-      return { ...m, waypoints: m.waypoints.map(wp => ({ ...wp, connections: wp.connections
+      return { ...m, explicitNavigation:!!scene.navigationEdges, waypoints: m.waypoints.map(wp => ({ ...wp, connections: wp.connections
         .filter(c => scene.maps.find(tm => tm.mapName === c.map_name)?.waypoints.some(tw => tw.code === c.target_node))
         .map(c => ({ mapName: c.map_name, waypointCode: c.target_node, reverse: c.reverse })) })).map(wp => ({...wp, displayKind:store.nodeById[wp.nodeId]?.displayKind,
           displayLabel:store.nodeById[wp.nodeId]?.displayKind==='stairs' ? store.nodeById[wp.nodeId]?.displayCode : store.formatLocation(wp.nodeId),
@@ -174,9 +175,27 @@ async function initialize() {
       const topology=new THREE.Group();topology.name='topoLines'
       const edge=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(points[0],points[1]),12,.045,8,false),new THREE.MeshStandardMaterial({color:0x4399ed,emissive:0x4399ed,emissiveIntensity:.3,transparent:true,opacity:.8}))
       edge.userData.topologyNodeIds=elevator.nodeIds
-      topology.add(edge)
+      if(!scene.navigationEdges) topology.add(edge)
       const group=new THREE.Group();group.add(topology);group.userData.elevatorShaft=true
       activeRenderer.scene.add(group);activeRenderer.mapGroups.set(`elevator-${elevator.id}`,group)
+    }
+    // The API graph owns direction and geometry; never offset robots in the view.
+    for(const edge of scene.navigationEdges || []) {
+      const a=store.nodeById[edge.source], b=store.nodeById[edge.target]
+      const points=[vector(a.position,.2),vector(b.position,.2)]
+      if(points[0].distanceTo(points[1])<.001) continue
+      const line=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(...points),1,.045,6,false),new THREE.MeshStandardMaterial({color:0x74b9ff,emissive:0x74b9ff,emissiveIntensity:.2,transparent:true,opacity:.8}))
+      line.userData.topologyNodeIds=[edge.source,edge.target];line.userData.directed=edge.directed
+      if(edge.directed) {
+        const arrow=new THREE.Mesh(new THREE.ConeGeometry(.13,.35,3),new THREE.MeshBasicMaterial({color:0x74b9ff}))
+        arrow.position.copy(points[0]).lerp(points[1],.55)
+        arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),points[1].clone().sub(points[0]).normalize())
+        arrow.userData.directionArrow=true;line.add(arrow)
+      }
+      const topology=new THREE.Group();topology.name='topoLines';topology.add(line)
+      const group=new THREE.Group();group.add(topology)
+      group.userData.displayFloors=[a.displayFloor,b.displayFloor]
+      renderer.scene.add(group);renderer.mapGroups.set(`nav-${edge.id}`,group)
     }
     renderer.onFrame = updateFrame
     const canvas = renderer.renderer.domElement
@@ -322,6 +341,7 @@ watch(floor, value => {
     const group=renderer?.mapGroups.get(m.mapName)
     if(group) group.visible=m.visible
   }
+  for(const group of renderer?.mapGroups.values() || []) if(group.userData.displayFloors) group.visible=value==='all' || group.userData.displayFloors.some(f=>String(f)===value)
   renderer?.updateViewLimits()
 })
 watch(showRobots, clearHover)
