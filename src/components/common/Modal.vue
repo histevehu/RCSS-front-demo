@@ -14,7 +14,8 @@ const ui=useUiStore(),dialog=ref(null),titleId=useId()
 let previousFocus
 function close() { emit('update:modelValue',false) }
 function trapFocus(event) {
-  const elements=[...dialog.value.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]')]
+  // Collapsed timetable/log sections may contain pagination; trap only visible controls.
+  const elements=[...dialog.value.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]')].filter(element=>element.getClientRects().length)
   const first=elements[0],last=elements.at(-1)
   if(!first) { event.preventDefault(); return }
   if(event.shiftKey && (document.activeElement===first || document.activeElement===dialog.value)) { event.preventDefault(); last.focus() }
