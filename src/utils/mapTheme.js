@@ -10,3 +10,6 @@ export function robotIsVisible(showRobots, robotId, selectedRobotId, floor, robo
 export function robotColor(theme, status) {
   return mapThemes[theme][status === 'executing' ? 'executingRobot' : 'robot']
 }
+
+// Direction categories keep the same hue in both themes and in the legend.
+export const navigationColors = { oneWay: 0x74b9ff, twoWay: 0xa29bfe }

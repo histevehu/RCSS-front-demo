@@ -127,3 +127,5 @@ Task records show elapsed execution / planned execution duration and a thin prog
 ### 批任务设置与后端更新
 
 发布区的批任务设置由演示后端保存。后端代码更新后，如启动命令未使用 `--reload`，需要重启实际由 Vite 代理连接的 `demo.main:app` 进程；默认代理目标为 `http://127.0.0.1:8000`，也可通过 `DEMO_API_URL` 指定。重启会清空该进程缓存的所有园区演示状态。旧版本后端不返回 `state.batching` 时，界面禁用批任务设置并提示重启，不再显示虚假的默认开启状态。
+
+地图方向图例：打包演示园区单向车道为蓝色、双向共享通道为紫色；选中任务经过的路线为黄色，取消选择恢复分类颜色。

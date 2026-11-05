@@ -43,3 +43,15 @@ test('directed lanes highlight only the requested travel direction',()=>{
   highlightTopologyPath(groups,['a','b'],0xfacc15)
   assert.equal(lines[0].material.color.getHex(),0xfacc15)
 })
+
+
+test('two-way purple restores after selection and deselection',()=>{
+  const {groups,lines}=scene()
+  lines[0].material.color.setHex(0xa29bfe)
+  lines[0].material.emissive.setHex(0xa29bfe)
+  highlightTopologyPath(groups,['b','a'],0xfacc15)
+  assert.equal(lines[0].material.color.getHex(),0xfacc15)
+  highlightTopologyPath(groups,[],0xfacc15)
+  assert.equal(lines[0].material.color.getHex(),0xa29bfe)
+  assert.equal(lines[0].material.emissive.getHex(),0xa29bfe)
+})

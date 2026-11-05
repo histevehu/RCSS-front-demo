@@ -10,7 +10,10 @@
       <details class="tool-menu"><summary>{{ ui.t('objects') }}</summary><div class="tool-popover object-options"><label><input v-model="showRobots" type="checkbox"> {{ ui.t('robots') }}</label><label><input v-model="showRoute" type="checkbox"> {{ ui.t('route') }}</label></div></details>
       <button @click="renderer?.fitCamera()">{{ ui.t('resetView') }}</button>
       <details class="tool-menu map-legend"><summary>{{ ui.t('legend') }}</summary><div class="tool-popover legend-content">
-        <div v-if="store.scene?.navigationEdges">→ {{ ui.t('laneCategory') }} · ↔ {{ ui.t('sharedCategory') }}</div>
+        <template v-if="store.scene?.navigationEdges">
+          <div><i class="legend-lane" :style="{background:'#'+navigationColors.oneWay.toString(16)}"></i><span>→ {{ ui.t('laneCategory') }}</span></div>
+          <div><i class="legend-lane" :style="{background:'#'+navigationColors.twoWay.toString(16)}"></i><span>↔ {{ ui.t('sharedCategory') }}</span></div>
+        </template>
         <div><i class="legend-node"></i><span>{{ ui.t('navigationPoint') }}</span></div>
         <div><i class="legend-elevator"></i><span>{{ ui.t('elevatorCategory') }}</span></div>
         <div><i class="legend-portal"></i><span>{{ ui.t('stairCategory') }}</span></div>
@@ -36,7 +39,7 @@ import { Map3DRenderer } from '../utils/map3dRenderer'
 import { parsePGM, pixelsToCanvas } from '../utils/pgmParser'
 import { useUiStore } from '../stores/uiStore'
 import { waypointColor, findMapTarget, tooltipPosition } from '../utils/mapInteraction.js'
-import { mapThemes, robotIsVisible, robotColor } from '../utils/mapTheme.js'
+import { mapThemes, robotIsVisible, robotColor, navigationColors } from '../utils/mapTheme.js'
 import { MapClickGesture, isPointNearRoute } from '../utils/mapSelection.js'
 import { highlightTopologyPath } from '../utils/topologyHighlight.js'
 const store = useAppStore(), ui = useUiStore()
@@ -184,10 +187,11 @@ async function initialize() {
       const a=store.nodeById[edge.source], b=store.nodeById[edge.target]
       const points=[vector(a.position,.2),vector(b.position,.2)]
       if(points[0].distanceTo(points[1])<.001) continue
-      const line=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(...points),1,.045,6,false),new THREE.MeshStandardMaterial({color:0x74b9ff,emissive:0x74b9ff,emissiveIntensity:.2,transparent:true,opacity:.8}))
+      const color=edge.directed ? navigationColors.oneWay : navigationColors.twoWay
+      const line=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(...points),1,.045,6,false),new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.2,transparent:true,opacity:.8}))
       line.userData.topologyNodeIds=[edge.source,edge.target];line.userData.directed=edge.directed
       if(edge.directed) {
-        const arrow=new THREE.Mesh(new THREE.ConeGeometry(.13,.35,3),new THREE.MeshBasicMaterial({color:0x74b9ff}))
+        const arrow=new THREE.Mesh(new THREE.ConeGeometry(.13,.35,3),new THREE.MeshBasicMaterial({color}))
         arrow.position.copy(points[0]).lerp(points[1],.55)
         arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),points[1].clone().sub(points[0]).normalize())
         arrow.userData.directionArrow=true;line.add(arrow)
@@ -381,6 +385,7 @@ onUnmounted(() => {
 })
 </script>
 <style scoped>
+.legend-lane { display:inline-block; width:18px; height:3px; border-radius:2px; }
 .legend-elevator { background:#176bc1; border-radius:2px; width:10px; height:10px; display:inline-block; }
 :global(:root[data-theme="dark"]) .legend-elevator { background:#65b5ff; }
 .conference-map,.map-canvas { position:absolute; inset:0; }
