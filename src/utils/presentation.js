@@ -2,6 +2,7 @@ import { formatDuration } from './demo.js'
 
 export const messages = {
   'zh-CN': {
+    moreActions:'更多', interfaceSettings:'界面设置', currentCampus:'当前园区',
     exportRecords:"导出记录",
     importRecords:"导入复盘",
     recordsExporting:"导出中…",
@@ -78,6 +79,7 @@ export const messages = {
     MAP_NOT_ALLOWED:'机器人无法进入目标地点', NODE_NOT_FOUND:'所选地点不可用', PATH_UNREACHABLE:'起终点之间没有可达路径', NO_FEASIBLE_ROBOT:'当前没有可执行此任务的机器人', SCHEDULE_FAILED:'调度失败，请重试',
   },
   'en-US': {
+    moreActions:'More', interfaceSettings:'Interface settings', currentCampus:'Current campus',
     exportRecords:"Export",
     importRecords:"Import",
     recordsExporting:"Exporting…",

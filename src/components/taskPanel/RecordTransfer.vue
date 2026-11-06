@@ -1,8 +1,8 @@
 <template>
   <div class="record-transfer">
     <button :disabled="exporting || !store.connected || store.busy" :title="ui.t('exportRecordsHint')" @click="exportRecords">{{ ui.t(exporting ? 'recordsExporting':'exportRecords') }}</button>
-    <button @click="fileInput.click()" :title="ui.t('importRecordsHint')">{{ ui.t('importRecords') }}</button>
-    <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="importRecords">
+    <button @click="chooseFile" :title="ui.t('importRecordsHint')">{{ ui.t('importRecords') }}</button>
+    <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="importRecords" @cancel="$emit('action')">
   </div>
   <Modal v-model="showError" :title="ui.t('recordsError')" size="sm"><p role="alert">{{ ui.t(error) }}</p></Modal>
   <RecordReview v-if="archive" v-model="showReview" :record="archive" />
@@ -15,12 +15,15 @@ import {api} from '../../utils/demo.js'
 import {downloadTaskRecords,parseTaskRecords,RECORD_LIMIT} from '../../utils/taskRecords.js'
 import Modal from '../common/Modal.vue'
 import RecordReview from './RecordReview.vue'
+const emit=defineEmits(['action'])
 const store=useAppStore(),ui=useUiStore()
+function chooseFile() { fileInput.value.click(); emit('action') }
 const fileInput=ref(null),exporting=ref(false),showError=ref(false),error=ref(''),showReview=ref(false),archive=shallowRef(null)
 function fail(code) { error.value=code; showError.value=true }
 async function exportRecords() {
   if(exporting.value) return
   exporting.value=true
+  emit('action')
   try {
     const record=await api(`records?sessionId=${encodeURIComponent(store.sessionId)}`)
     downloadTaskRecords(record)
@@ -42,6 +45,7 @@ async function importRecords(event) {
 }
 </script>
 <style scoped>
-.record-transfer { display:flex; gap:6px; min-width:0; }
-.record-transfer button { min-height:32px; padding:4px 8px; white-space:nowrap; }
+.record-transfer { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.record-transfer button { min-height:36px; padding:6px 8px; text-align:left; border:0; background:transparent; white-space:nowrap; }.record-transfer button:hover { background:var(--hover); }
+@media(max-width:800px) { .record-transfer button { min-height:44px; } }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="task-list">
     <div class="record-toolbar">
-      <RecordTransfer />
+      <span class="record-caption">{{ ui.t('recordConditions') }}</span>
       <button :class="{active:criteriaCount>0}" @click="openFilters">{{ ui.t('moreFilters') }}<span v-if="criteriaCount"> · {{ criteriaCount }}</span></button>
       <button v-if="criteriaCount" class="clear-criteria" :aria-label="ui.t('clearConditions')" @click="clearCriteria">×</button>
     </div>
@@ -33,7 +33,6 @@ import { useUiStore } from '../../stores/uiStore'
 import {readTaskCriteria,filterTaskRecords,normalizeTaskFilter} from '../../utils/taskFilters.js'
 import Modal from '../common/Modal.vue'
 import TaskCard from './TaskCard.vue'
-import RecordTransfer from './RecordTransfer.vue'
 const props=defineProps({initialFilter:{type:String,default:'all'}}),emit=defineEmits(['selectTask'])
 const store=useAppStore(),ui=useUiStore(),router=useRouter(),route=useRoute()
 const currentFilter=computed(()=>normalizeTaskFilter(props.initialFilter))
