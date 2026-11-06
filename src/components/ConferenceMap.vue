@@ -148,7 +148,7 @@ async function initialize() {
       if (!pgmResponse.ok || !yamlResponse.ok) throw new Error('Map assets are unavailable. Please retry.')
       const buffer = await pgmResponse.arrayBuffer()
       const config = yaml.load(await yamlResponse.text())
-      return { ...m, explicitNavigation:!!scene.navigationEdges, waypoints: m.waypoints.map(wp => ({ ...wp, connections: wp.connections
+      return { ...m, reconstructDemoWalls:scene.campusId === 'demo-campus', explicitNavigation:!!scene.navigationEdges, waypoints: m.waypoints.map(wp => ({ ...wp, connections: wp.connections
         .filter(c => scene.maps.find(tm => tm.mapName === c.map_name)?.waypoints.some(tw => tw.code === c.target_node))
         .map(c => ({ mapName: c.map_name, waypointCode: c.target_node, reverse: c.reverse })) })).map(wp => ({...wp, displayKind:store.nodeById[wp.nodeId]?.displayKind,
           displayLabel:store.nodeById[wp.nodeId]?.displayKind==='stairs' ? store.nodeById[wp.nodeId]?.displayCode : store.formatLocation(wp.nodeId),

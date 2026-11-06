@@ -1,17 +1,45 @@
-/** Exact polygon union of PGM cell footprints, followed by boundary extrusion.
- * Runs in the preparation worker. No smoothing, gap filling or pixel sampling:
- * holes and disconnected islands remain part of the original occupancy mask.
+/** Build display-only building surfaces in the preparation worker.
+ * The packaged demo may reconnect small breaks in scanned wall pixels; the
+ * scheduler and the original PGM are never modified.
  */
 import clipping from 'polygon-clipping'
 import {Shape,Path,ExtrudeGeometry} from 'three'
 import {mergeGridCells} from './gridRectangles.js'
 
+/** Bridge short, bounded gaps along wall axes and diagonals for the demo view.
+ * Use only original occupied endpoints, so newly added pixels cannot chain
+ * across larger openings. A 25 cm maximum keeps normal doorways open.
+ */
+export function reconstructWallMask(pixels, width, height, resolution, maxGapMetres = .25) {
+ const original=Uint8Array.from(pixels, gray=>gray<200 ? 1:0)
+ const result=original.slice()
+ const directions=[[1,0],[0,1],[1,1],[1,-1]]
+ for(const [dx,dy] of directions) {
+  const limit=Math.floor((maxGapMetres+1e-9)/(resolution*Math.hypot(dx,dy)))
+  if(!limit)continue
+  for(let y=0;y<height;y++) for(let x=0;x<width;x++) {
+   if(!original[y*width+x])continue
+   for(let step=1;step<=limit+1;step++) {
+    const nx=x+dx*step,ny=y+dy*step
+    if(nx<0||nx>=width||ny<0||ny>=height)break
+    if(!original[ny*width+nx])continue
+    if(step>1)for(let n=1;n<step;n++)result[(y+dy*n)*width+x+dx*n]=1
+    break
+   }
+  }
+ }
+ return result
+}
+
 /** Collect the same floor mask as the legacy renderer, before any polygon union. */
 export function buildingCells(map, indoor) {
  const walls=[], floors=[]
+ const wallMask=map.reconstructDemoWalls
+  ? reconstructWallMask(map.pgmPixels,map.pgmWidth,map.pgmHeight,map.mapConfig.resolution)
+  : null
  const {resolution,origin}=map.mapConfig, c=Math.cos(map.rotation),s=Math.sin(map.rotation)
  for(let y=0;y<map.pgmHeight;y++) for(let x=0;x<map.pgmWidth;x++) {
-  if(map.pgmPixels[y*map.pgmWidth+x]<200) {walls.push({x,y});continue}
+  if(wallMask ? wallMask[y*map.pgmWidth+x] : map.pgmPixels[y*map.pgmWidth+x]<200) {walls.push({x,y});continue}
   if(indoor) {
    const lx=origin[0]+(x+.5)*resolution,ly=origin[1]+(map.pgmHeight-y-.5)*resolution
    const gx=Math.floor((map.offset.x+lx*c-ly*s-indoor.minX)/indoor.resolution)
@@ -22,14 +50,33 @@ export function buildingCells(map, indoor) {
  }
  return {walls,floors}
 }
+/** Remove sub-cell-scale zigzags from display contours, retaining endpoints.
+ * Rings with fewer than three corners retain their original shape. */
+function simplifyRing(ring, tolerance) {
+ if(ring.length<5 || !tolerance)return ring
+ const points=ring.slice(0,-1),first=points[0]
+ let split=1,dist=-1
+ for(let i=1;i<points.length;i++){const d=(points[i][0]-first[0])**2+(points[i][1]-first[1])**2;if(d>dist){dist=d;split=i}}
+ function simplify(line) {
+  const keep=new Uint8Array(line.length);keep[0]=keep[line.length-1]=1
+  const stack=[[0,line.length-1]]
+  while(stack.length){const [a,b]=stack.pop(),p=line[a],q=line[b],dx=q[0]-p[0],dy=q[1]-p[1],length=dx*dx+dy*dy;let max=tolerance*tolerance,index=-1
+   for(let i=a+1;i<b;i++){const t=length?Math.max(0,Math.min(1,((line[i][0]-p[0])*dx+(line[i][1]-p[1])*dy)/length)):0;const d=(line[i][0]-p[0]-t*dx)**2+(line[i][1]-p[1]-t*dy)**2;if(d>max){max=d;index=i}}
+   if(index>=0){keep[index]=1;stack.push([a,index],[index,b])}
+  }
+  return line.filter((_,i)=>keep[i])
+ }
+ const result=[...simplify(points.slice(0,split+1)).slice(0,-1),...simplify([...points.slice(split),first])]
+ return result.length>=4 ? result : ring
+}
 // Normalize shared corners to micrometres before clipping; independent floating
 // point expressions for rotated cell boundaries otherwise create sliver rings.
-function polygons(map,cells) {
+function polygons(map,cells,simplifyWalls=false) {
  const {resolution:r,origin:o}=map.mapConfig,c=Math.cos(map.rotation),s=Math.sin(map.rotation)
  const rects=mergeGridCells(cells).map(({x,y,width:w,height:h})=>[[[x,y],[x+w,y],[x+w,y+h],[x,y+h],[x,y]]])
  // Resolve all shared cell corners on the exact integer grid first. Only the
  // resulting boundary rings need a floating-point world transform.
- return union(rects).map(polygon=>polygon.map(ring=>ring.map(([px,py])=>{
+ return union(rects).map(polygon=>polygon.map(ring=>(simplifyWalls ? simplifyRing(ring,.075/r) : ring).map(([px,py])=>{
   const a=o[0]+px*r,b=o[1]+(map.pgmHeight-py)*r
   return [map.offset.x+a*c-b*s,map.offset.y+a*s+b*c].map(v=>Math.round(v*1e6)/1e6)
  })))
@@ -81,7 +128,7 @@ export function prepareBuildingSurfaces(maps,indoorMaps) {
  }
  for(const [key,layer] of floors) {
   const walls=[],floors=[]
-  for(const map of layer){const cells=buildingCells(map,indoorMaps?.get(key));walls.push(...polygons(map,cells.walls));floors.push(...polygons(map,cells.floors))}
+  for(const map of layer){const cells=buildingCells(map,indoorMaps?.get(key));walls.push(...polygons(map,cells.walls,map.reconstructDemoWalls));floors.push(...polygons(map,cells.floors))}
   const wall=union(walls),floor=union(floors)
   const owner=layer[0]
   owner.buildingSurfaces={wall:geometry(wall,owner,1.5,0),floor:geometry(wall.length&&floor.length?clipping.difference(floor,wall):floor,owner,.02,-.02)}

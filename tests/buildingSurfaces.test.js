@@ -34,7 +34,7 @@ test('packaged rotated submaps prepare without floating point clipping failures'
  const maps=await Promise.all(transforms.map(async([name,x,y,z,rotation])=>{
   const bytes=await readFile(new URL(`../public/maps/${name}/${name}.pgm`,import.meta.url))
   const pgm=parsePGM(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength))
-  return {mapName:name,offset:{x,y,z},rotation,mapConfig:yaml.load(await readFile(new URL(`../public/maps/${name}/${name}.yaml`,import.meta.url),'utf8')),pgmPixels:pgm.pixels,pgmWidth:pgm.width,pgmHeight:pgm.height}
+  return {mapName:name,reconstructDemoWalls:true,offset:{x,y,z},rotation,mapConfig:yaml.load(await readFile(new URL(`../public/maps/${name}/${name}.yaml`,import.meta.url),'utf8')),pgmPixels:pgm.pixels,pgmWidth:pgm.width,pgmHeight:pgm.height}
  }))
  const renderer=Object.create(Map3DRenderer.prototype);renderer.allMaps=maps
  prepareBuildingSurfaces(maps,renderer.calculateGlobalIndoorMaps())
@@ -47,4 +47,28 @@ test('cancelled surface uploads never attach stale geometry',async()=>{
  const renderer=Object.create(Map3DRenderer.prototype),group=new Group()
  const pending=renderer.renderBuilding(group,m,'wall',true);renderer.disposed=true;await pending
  assert.equal(group.children.length,0)
+})
+
+test('demo display closes small wall breaks but keeps doors and does not chain gaps',async()=>{
+ const {reconstructWallMask}=await import('../src/utils/buildingSurfaces.js')
+ // Gap of three pixels (15 cm) closes; a seven-pixel opening (35 cm) does not.
+ const pixels=new Uint8Array(18).fill(255);for(const x of [0,4,12,16])pixels[x]=0
+ const before=pixels.slice(),mask=reconstructWallMask(pixels,18,1,.05)
+ assert.deepEqual([...mask.slice(0,5)],[1,1,1,1,1])
+ assert.deepEqual([...mask.slice(5,12)],[0,0,0,0,0,0,0])
+ assert.deepEqual([...mask.slice(12,17)],[1,1,1,1,1])
+ assert.deepEqual(pixels,before)
+ const ordinary=map([...pixels],18,1);ordinary.mapConfig.resolution=.05
+ const demo={...ordinary,reconstructDemoWalls:true}
+ prepareBuildingSurfaces([ordinary]);prepareBuildingSurfaces([demo])
+ assert.ok(topArea(demo.buildingSurfaces.wall)>topArea(ordinary.buildingSurfaces.wall))
+})
+
+test('short vertical and diagonal breaks are bounded by physical distance',async()=>{
+ const {reconstructWallMask}=await import('../src/utils/buildingSurfaces.js')
+ const pixels=new Uint8Array(9*9).fill(255)
+ for(const [x,y] of [[1,0],[1,4],[4,0],[7,3]])pixels[y*9+x]=0
+ const mask=reconstructWallMask(pixels,9,9,.05)
+ for(const [x,y] of [[1,1],[1,2],[1,3],[5,1],[6,2]])assert.equal(mask[y*9+x],1)
+ assert.equal(mask[8*9+8],0)
 })
