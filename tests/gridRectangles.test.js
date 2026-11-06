@@ -19,19 +19,3 @@ test('indexed robot task lookup retains queued, boundary and completed semantics
   assert.equal(taskAtTime(tasks,-1),undefined)
   for(const time of [0,5,9,10,5001,100000])assert.equal(taskAtTime(tasks,time),tasks.filter(t=>t.startTime<=time).at(-1))
 })
-
-test('merged render geometry preserves pixel transforms and floor/wall footprint',async()=>{
-  const {Map3DRenderer}=await import('../src/utils/map3dRenderer.js')
-  const {Group,Matrix4}=await import('three')
-  const renderer=Object.create(Map3DRenderer.prototype),map={pgmWidth:3,pgmHeight:2,
-    pgmPixels:new Uint8Array([255,255,0,255,255,0]),mapConfig:{resolution:.5,origin:[-3,10]},rotation:0,offset:{x:0,y:0}}
-  const floor=new Group(),walls=new Group(),matrix=new Matrix4()
-  renderer.renderFloor(floor,map,null);renderer.renderObstacles(walls,map)
-  assert.equal(floor.children[0].count,1);assert.equal(walls.children[0].count,1)
-  floor.children[0].getMatrixAt(0,matrix)
-  assert.equal(matrix.elements[0],1);assert.equal(matrix.elements[10],1)
-  assert.equal(matrix.elements[12],-2.5);assert.equal(matrix.elements[14],-10.5)
-  walls.children[0].getMatrixAt(0,matrix)
-  assert.equal(matrix.elements[0],.5);assert.equal(matrix.elements[10],1)
-  assert.equal(matrix.elements[12],-1.75);assert.equal(matrix.elements[14],-10.5)
-})

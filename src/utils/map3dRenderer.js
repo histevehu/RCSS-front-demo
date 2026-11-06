@@ -4,7 +4,7 @@
 
 import * as THREE from 'three'
 import { stabilizeBuilding } from './buildingMaterial.js'
-import { mergeGridCells } from './gridRectangles.js'
+import { prepareBuildingSurfaces } from './buildingSurfaces.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { createWaypointLabel, paintMapLabel, sizeWaypointLabel, layoutWaypointLabels } from './mapLabels.js'
 import { mapThemes } from './mapTheme.js'
@@ -121,13 +121,13 @@ export class Map3DRenderer {
       }
       if(object.userData.themeRole === 'wall') {
         object.material.color.set(light ? 0xc9dce8 : 0x7795ad)
-        object.material.emissive.set(light ? 0xe8f2f8 : 0x506b84)
-        object.material.opacity=light ? .38:.32
+        object.material.emissive?.set(light ? 0xe8f2f8 : 0x506b84)
+        object.material.opacity=light ? .16:.14
       }
       if(object.userData.themeRole === 'floor') {
         object.material.color.set(light ? 0xeaf2f8 : 0x344c65)
-        object.material.emissive.set(light ? 0xf0f7fc : 0x263d53)
-        object.material.opacity=light ? .38:.32
+        object.material.emissive?.set(light ? 0xf0f7fc : 0x263d53)
+        object.material.opacity=light ? .16:.14
       }
     })
   }
@@ -192,11 +192,12 @@ export class Map3DRenderer {
    */
   async render(yieldFrames=false) {
     // 清除旧的地图组
-    this.mapGroups.forEach(group => this.scene.remove(group))
+    this.mapGroups.forEach(group => {this.scene.remove(group);this.disposeGroup(group)})
     this.mapGroups.clear()
 
     // 计算全局室内地图（按楼层分组）
     const globalIndoorMaps = this.preparedIndoor || this.calculateGlobalIndoorMaps()
+    if(this.allMaps.some(map=>!map.buildingSurfaces)) prepareBuildingSurfaces(this.allMaps,globalIndoorMaps)
 
     // 渲染每个地图
     for (const map of this.allMaps) {
@@ -220,14 +221,13 @@ export class Map3DRenderer {
       
       if (!isStairMap) {
         // 渲染 3D 障碍物
-        this.renderObstacles(mapGroup, map)
+        await this.renderBuilding(mapGroup, map, 'wall', yieldFrames)
 
         // 渲染地板（使用全局室内地图）
-        const floorKey = Math.round(map.offset.z * 10) / 10 // 四舍五入到0.1精度
-        const globalIndoorMap = globalIndoorMaps.get(floorKey)
-        this.renderFloor(mapGroup, map, globalIndoorMap)
+        await this.renderBuilding(mapGroup, map, 'floor', yieldFrames)
       }
 
+      if(this.disposed || !this.scene) {this.disposeGroup(mapGroup);return}
       // 渲染导航点
       this.renderWaypoints(mapGroup, map)
 
@@ -441,147 +441,23 @@ export class Map3DRenderer {
   /**
    * 渲染障碍物（墙体）
    */
-  renderObstacles(group, map) {
-    const { pgmPixels, pgmWidth, pgmHeight, mapConfig } = map
-    const { resolution, origin } = mapConfig
-
-    // 收集障碍物位置
-    const obstacles = []
-    for (let y = 0; y < pgmHeight; y += SAMPLE_RATE) {
-      for (let x = 0; x < pgmWidth; x += SAMPLE_RATE) {
-        const idx = y * pgmWidth + x
-        const gray = pgmPixels[idx]
-        if (gray < OBSTACLE_THRESHOLD) {
-          obstacles.push({ x, y })
-        }
-      }
+  async renderBuilding(group, map, role, yieldFrames=false) {
+    for(const surface of map.buildingSurfaces[role]) {
+      if(yieldFrames) await new Promise(resolve=>setTimeout(resolve,0))
+      if(this.disposed) return
+      const geometry=new THREE.BufferGeometry()
+      geometry.setAttribute('position',new THREE.BufferAttribute(surface.position,3))
+      geometry.setAttribute('normal',new THREE.BufferAttribute(surface.normal,3))
+      geometry.computeBoundingBox();geometry.computeBoundingSphere()
+      const material=new THREE.MeshBasicMaterial({color:role==='wall'?0xB0C4DE:0xD6D3CC,opacity:.2})
+      const mesh=new THREE.Mesh(geometry,material)
+      mesh.userData.themeRole=role
+      // Flat, single-colour boundary surfaces blend commutatively within each
+      // role; fixed role order avoids camera-dependent wall/floor reordering.
+      mesh.renderOrder=role==='wall' ? -2:-3
+      stabilizeBuilding(mesh,this.renderer ? this.renderer.getContext().getContextAttributes().antialias : true)
+      group.add(mesh)
     }
-
-    if (obstacles.length === 0) return
-
-    // 使用 InstancedMesh 批量渲染
-    const rectangles=mergeGridCells(obstacles)
-    const geometry = new THREE.BoxGeometry(1, WALL_HEIGHT, 1)
-    // 半透明墙体材质 - 让路线更清晰
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xB0C4DE,
-      emissive: 0x87CEEB,
-      emissiveIntensity: 0.1,
-      roughness: 0.6,
-      metalness: 0.1,
-      transparent: true,
-      opacity: 0.35,
-      depthWrite: false
-    })
-
-    const mesh = new THREE.InstancedMesh(geometry, material, rectangles.length)
-    mesh.userData.themeRole = 'wall'
-    mesh.castShadow = true
-    mesh.receiveShadow = true
-
-    const matrix = new THREE.Matrix4()
-
-    rectangles.forEach((obs, i) => {
-      // 像素坐标 -> 地图坐标（米）
-      const worldX = origin[0] + (obs.x + obs.width / 2) * resolution
-      const worldY = origin[1] + (pgmHeight - obs.y - obs.height / 2) * resolution
-
-      // 地图坐标 -> Three.js 坐标
-      matrix.makeScale(obs.width * resolution,1,obs.height * resolution)
-      matrix.setPosition(worldX, WALL_HEIGHT / 2, -worldY)
-      mesh.setMatrixAt(i, matrix)
-    })
-
-    mesh.instanceMatrix.needsUpdate = true
-    stabilizeBuilding(mesh, this.renderer ? this.renderer.getContext().getContextAttributes().antialias : true)
-
-    group.add(mesh)
-  }
-
-  /**
-   * 渲染地板 - 基于全局室内地图判定室内外
-   * @param {THREE.Group} group - 地图组
-   * @param {Object} map - 地图数据
-   * @param {Object} globalIndoorMap - 全局室内地图
-   */
-  renderFloor(group, map, globalIndoorMap) {
-    const { pgmPixels, pgmWidth, pgmHeight, mapConfig } = map
-    const { resolution, origin } = mapConfig
-
-    const sampleRate = SAMPLE_RATE
-    const floorThickness = 0.02
-
-    // 收集室内地板位置
-    const floorPositions = []
-    
-    const cosR = Math.cos(map.rotation)
-    const sinR = Math.sin(map.rotation)
-
-    for (let py = 0; py < pgmHeight; py += sampleRate) {
-      for (let px = 0; px < pgmWidth; px += sampleRate) {
-        const gray = pgmPixels[py * pgmWidth + px]
-        
-        // 如果是自由空间（白色）
-        if (gray >= 200) {
-          // 计算该像素在局部坐标系中的位置
-          const localX = origin[0] + (px + 0.5) * resolution
-          const localY = origin[1] + (pgmHeight - py - 0.5) * resolution
-          
-          // 如果有全局室内地图，使用全局判定
-          if (globalIndoorMap) {
-            // 应用地图的rotation和offset得到世界坐标
-            const rotatedX = localX * cosR - localY * sinR
-            const rotatedY = localX * sinR + localY * cosR
-            const worldX = map.offset.x + rotatedX
-            const worldY = map.offset.y + rotatedY
-            
-            // 转换为全局栅格坐标
-            const gx = Math.floor((worldX - globalIndoorMap.minX) / globalIndoorMap.resolution)
-            const gy = Math.floor((worldY - globalIndoorMap.minY) / globalIndoorMap.resolution)
-            
-            // 查询全局室内外地图
-            if (gx >= 0 && gx < globalIndoorMap.gridWidth && gy >= 0 && gy < globalIndoorMap.gridHeight) {
-              const globalIdx = gy * globalIndoorMap.gridWidth + gx
-              
-              if (globalIndoorMap.indoorMap[globalIdx] === 0) {
-                // 全局判定为室内，创建地板（使用局部坐标）
-                floorPositions.push({ x:px, y:py })
-              }
-            }
-          } else {
-            // 如果没有全局地图，所有自由空间都渲染地板
-            floorPositions.push({ x:px, y:py })
-          }
-        }
-      }
-    }
-
-    if (floorPositions.length === 0) return
-
-    const rectangles=mergeGridCells(floorPositions)
-    const geometry = new THREE.BoxGeometry(1, floorThickness, 1)
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xD6D3CC,
-      emissive: 0xE8E6E0,
-      emissiveIntensity: 0.08,
-      roughness: 0.8,
-      metalness: 0.1
-    })
-
-    const mesh = new THREE.InstancedMesh(geometry, material, rectangles.length)
-    const matrix = new THREE.Matrix4()
-
-    rectangles.forEach((pos, i) => {
-      matrix.makeScale(pos.width * resolution,1,pos.height * resolution)
-      matrix.setPosition(origin[0]+(pos.x+pos.width/2)*resolution, -0.01, -(origin[1]+(pgmHeight-pos.y-pos.height/2)*resolution))
-      mesh.setMatrixAt(i, matrix)
-    })
-
-    mesh.instanceMatrix.needsUpdate = true
-    stabilizeBuilding(mesh, this.renderer ? this.renderer.getContext().getContextAttributes().antialias : true)
-    mesh.userData.themeRole = 'floor'
-    mesh.receiveShadow = true
-    group.add(mesh)
   }
 
   /**
