@@ -3,6 +3,7 @@
  */
 
 import * as THREE from 'three'
+import { stabilizeBuilding } from './buildingMaterial.js'
 import { mergeGridCells } from './gridRectangles.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { createWaypointLabel, paintMapLabel, sizeWaypointLabel, layoutWaypointLabels } from './mapLabels.js'
@@ -121,14 +122,12 @@ export class Map3DRenderer {
       if(object.userData.themeRole === 'wall') {
         object.material.color.set(light ? 0xc9dce8 : 0x7795ad)
         object.material.emissive.set(light ? 0xe8f2f8 : 0x506b84)
-        object.material.opacity=light ? .14:.12
+        object.material.opacity=light ? .38:.32
       }
       if(object.userData.themeRole === 'floor') {
         object.material.color.set(light ? 0xeaf2f8 : 0x344c65)
         object.material.emissive.set(light ? 0xf0f7fc : 0x263d53)
-        object.material.transparent=true
-        object.material.opacity=light ? .38:.25
-        object.material.depthWrite=false
+        object.material.opacity=light ? .38:.32
       }
     })
   }
@@ -494,6 +493,7 @@ export class Map3DRenderer {
     })
 
     mesh.instanceMatrix.needsUpdate = true
+    stabilizeBuilding(mesh, this.renderer ? this.renderer.getContext().getContextAttributes().antialias : true)
 
     group.add(mesh)
   }
@@ -578,6 +578,7 @@ export class Map3DRenderer {
     })
 
     mesh.instanceMatrix.needsUpdate = true
+    stabilizeBuilding(mesh, this.renderer ? this.renderer.getContext().getContextAttributes().antialias : true)
     mesh.userData.themeRole = 'floor'
     mesh.receiveShadow = true
     group.add(mesh)
