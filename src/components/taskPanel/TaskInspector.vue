@@ -9,19 +9,21 @@
       </button>
       <button class="inspector-close" :aria-label="ui.t('clearSelection')" @click="close">×</button>
     </div>
-    <div v-if="expanded" id="selected-task-body" class="inspector-body"><TaskDetails :task="task" /></div>
+    <div v-if="expanded" ref="detailsBody" id="selected-task-body" class="inspector-body"><TaskDetails :task="task" /></div>
   </section>
 </template>
 <script setup>
-import { ref,watch,nextTick } from 'vue'
+import { computed,ref,watch,nextTick } from 'vue'
 import { useAppStore } from '../../stores/appStore'
 import { useUiStore } from '../../stores/uiStore'
 import TaskDetails from './TaskDetails.vue'
 const props=defineProps({task:{type:Object,required:true}}),emit=defineEmits(['layoutChange'])
-const store=useAppStore(),ui=useUiStore(),expanded=ref(false)
-// 新选择从简洁摘要开始，不改变左侧记录列表的位置或滚动位置。
-watch(()=>props.task.id,()=>{expanded.value=false})
-async function toggle() { expanded.value=!expanded.value;await nextTick();emit('layoutChange') }
+const store=useAppStore(),ui=useUiStore()
+// 折叠属于用户的界面偏好，切换、取消选择或重新挂载组件都不应重置。
+const expanded=computed(()=>ui.preferences.folds.inspector===false),detailsBody=ref(null)
+// 新任务从详情顶部开始；同一任务的轮询更新不打断滚动。
+watch(()=>props.task.id,async()=>{await nextTick();if(detailsBody.value)detailsBody.value.scrollTop=0})
+async function toggle() { ui.preferences.folds.inspector=expanded.value;await nextTick();emit('layoutChange') }
 async function close() {
   const id=props.task.id
   store.selectTask(null)

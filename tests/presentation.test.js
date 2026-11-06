@@ -85,3 +85,11 @@ test('parking and occupancy failures remain clear in both languages',()=>{
  assert.equal(publicText('4F · Parking R1','en-US'),'4F · Parking R1')
  assert.equal(englishLogMessage({type:'failed',taskId:'T001',message:'T001: CONFLICT_UNRESOLVED'}),'T001: No safe plan: corridor or waiting position is occupied')
 })
+
+test('selected task inspector remembers an explicit expanded or collapsed choice',()=>{
+  for(const folded of [false,true]) {
+    const data=JSON.stringify({folds:{inspector:folded}})
+    assert.equal(readPreferences({getItem:()=>data}).folds.inspector,folded)
+  }
+  assert.equal(readPreferences({getItem:()=>'{"folds":{"inspector":"false"}}'}).folds.inspector,undefined)
+})

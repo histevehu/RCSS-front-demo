@@ -189,7 +189,7 @@ export function readPreferences(storage) {
   let saved
   try { saved = JSON.parse(storage?.getItem(preferenceKey) || '{}') } catch { saved = {} }
   const folds = {}
-  for (const key of ['summary','queue','list','details','robots','distribution','metrics']) if (typeof saved?.folds?.[key] === 'boolean') folds[key] = saved.folds[key]
+  for (const key of ['summary','queue','list','details','inspector','robots','distribution','metrics']) if (typeof saved?.folds?.[key] === 'boolean') folds[key] = saved.folds[key]
   return { locale:saved?.locale === 'en-US' ? 'en-US' : 'zh-CN', theme:saved?.theme === 'dark' ? 'dark' : 'light',
     leftHidden:saved?.leftHidden === true, rightHidden:saved?.rightHidden === true, folds }
 }

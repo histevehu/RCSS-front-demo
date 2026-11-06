@@ -26,7 +26,7 @@
         </button>
         <div v-if="pageCount>1" class="review-pages"><button :disabled="page===0" @click="page--">{{ ui.t('previousPage') }}</button><span>{{ page+1 }} / {{ pageCount }}</span><button :disabled="page+1>=pageCount" @click="page++">{{ ui.t('nextPage') }}</button></div>
       </div>
-      <section v-if="selected" class="archive-detail" :aria-label="ui.t('details')">
+      <section v-if="selected" ref="reviewDetail" class="archive-detail" :aria-label="ui.t('details')">
         <h4>{{ selected.id }} · {{ selected.name }}</h4>
         <p class="archive-route">{{ route(selected.routeNodes) }}</p>
         <dl class="archive-meta">
@@ -46,11 +46,11 @@
         <div v-if="selected.reasonCode || selected.reason" class="archive-reason"><strong>{{ ui.t('recordsOriginalReason') }}</strong><p>{{ selected.reason || '—' }}</p><code v-if="selected.reasonCode">{{ selected.reasonCode }}</code></div>
         <p v-if="selected.notes" class="archive-notes">{{ ui.t('notes') }}: {{ selected.notes }}</p>
         <h5>{{ ui.t('recordsPlannedRoute') }}</h5><p class="archive-route">{{ route(selected.path) }}</p>
-        <details v-if="selected.timetable.length" :key="selected.id"><summary>{{ ui.t('recordsTimetable') }} · {{ selected.timetable.length }}</summary>
+        <details v-if="selected.timetable.length" :open="timetableOpen" @toggle="timetableOpen=$event.target.open"><summary>{{ ui.t('recordsTimetable') }} · {{ selected.timetable.length }}</summary>
           <div class="table-scroll"><table><thead><tr><th>{{ ui.t('recordsLocation') }}</th><th>{{ ui.t('recordsArrival') }}</th><th>{{ ui.t('recordsDeparture') }}</th></tr></thead><tbody><tr v-for="(row,index) in selected.timetable.slice(tablePage*100,(tablePage+1)*100)" :key="index"><td>{{ label(row.nodeId) }}</td><td>{{ time(row.arrival) }}</td><td>{{ time(row.depart) }}</td></tr></tbody></table></div>
           <div v-if="selected.timetable.length>100" class="review-pages"><button :disabled="tablePage===0" @click="tablePage--">{{ ui.t('previousPage') }}</button><span>{{ tablePage+1 }} / {{ Math.ceil(selected.timetable.length/100) }}</span><button :disabled="(tablePage+1)*100>=selected.timetable.length" @click="tablePage++">{{ ui.t('nextPage') }}</button></div>
         </details>
-        <details v-if="selected.trajectory.length" :key="selected.id+'-trajectory'"><summary>{{ ui.t('recordsTrajectory') }} · {{ selected.trajectory.length }}</summary><p>{{ ui.t('recordsTrajectoryHint') }}</p>
+        <details v-if="selected.trajectory.length" :open="trajectoryOpen" @toggle="trajectoryOpen=$event.target.open"><summary>{{ ui.t('recordsTrajectory') }} · {{ selected.trajectory.length }}</summary><p>{{ ui.t('recordsTrajectoryHint') }}</p>
           <div class="table-scroll"><table><thead><tr><th>{{ ui.t('recordsSampleTime') }}</th><th>X</th><th>Y</th><th>Z</th></tr></thead><tbody><tr v-for="(point,index) in selected.trajectory.slice(trajectoryPage*100,(trajectoryPage+1)*100)" :key="index"><td>{{ point.time.toFixed(3) }}</td><td>{{ point.x.toFixed(3) }}</td><td>{{ point.y.toFixed(3) }}</td><td>{{ point.z.toFixed(3) }}</td></tr></tbody></table></div>
           <div v-if="selected.trajectory.length>100" class="review-pages"><button :disabled="trajectoryPage===0" @click="trajectoryPage--">{{ ui.t('previousPage') }}</button><span>{{ trajectoryPage+1 }} / {{ Math.ceil(selected.trajectory.length/100) }}</span><button :disabled="(trajectoryPage+1)*100>=selected.trajectory.length" @click="trajectoryPage++">{{ ui.t('nextPage') }}</button></div>
         </details>
@@ -66,7 +66,7 @@
 <script setup>
 import {useRouter} from 'vue-router'
 import {api} from '../../utils/demo.js'
-import {computed,ref,watch} from 'vue'
+import {computed,ref,watch,nextTick} from 'vue'
 import Modal from '../common/Modal.vue'
 import {useUiStore} from '../../stores/uiStore'
 import {locationLabel,routeLabels} from '../../utils/locations.js'
@@ -75,7 +75,7 @@ async function prepareReplay(){replayBusy.value=true;replayError.value='';try{re
 async function startReplay(){const tab=window.open('about:blank','_blank');replayBusy.value=true;try{const job=await api('replays',{requestId:crypto.randomUUID(),record:props.record,sceneVersion:replayPreview.value.sceneVersion});const url=router.resolve({name:'replay',params:{id:job.id}}).href;if(tab)tab.location.href=url;else router.push(url)}catch(e){tab?.close();replayError.value=e.message}finally{replayBusy.value=false}}
 const props=defineProps({modelValue:Boolean,record:{type:Object,required:true}})
 defineEmits(['update:modelValue'])
-const ui=useUiStore(),status=ref(''),batch=ref(''),type=ref(''),selectedId=ref(null),page=ref(0),tablePage=ref(0),logPage=ref(0),trajectoryPage=ref(0)
+const ui=useUiStore(),status=ref(''),batch=ref(''),type=ref(''),selectedId=ref(null),page=ref(0),tablePage=ref(0),logPage=ref(0),trajectoryPage=ref(0),reviewDetail=ref(null),timetableOpen=ref(false),trajectoryOpen=ref(false)
 const tasks=computed(()=>props.record.state.tasks)
 const nodes=computed(()=>Object.fromEntries(props.record.scene.nodes.map(n=>[n.id,n])))
 const campusName=computed(()=>props.record.scene.campusNames?.[ui.preferences.locale] || ui.t('recordsUnnamedCampus'))
@@ -86,9 +86,9 @@ const filtered=computed(()=>tasks.value.filter(t=>(!status.value || t.status===s
 const pageCount=computed(()=>Math.max(1,Math.ceil(filtered.value.length/50)))
 const pageTasks=computed(()=>filtered.value.slice(page.value*50,(page.value+1)*50))
 const selected=computed(()=>pageTasks.value.find(t=>t.id===selectedId.value) || pageTasks.value[0])
-watch(()=>props.record,()=>{replayPreview.value=null;replayError.value='';status.value='';batch.value='';type.value='';page.value=0;selectedId.value=null;tablePage.value=0;trajectoryPage.value=0;logPage.value=0})
+watch(()=>props.record,()=>{replayPreview.value=null;replayError.value='';timetableOpen.value=false;trajectoryOpen.value=false;status.value='';batch.value='';type.value='';page.value=0;selectedId.value=null;tablePage.value=0;trajectoryPage.value=0;logPage.value=0})
 watch([status,batch,type],()=>{page.value=0;tablePage.value=0})
-watch(()=>selected.value?.id,()=>{tablePage.value=0;trajectoryPage.value=0})
+watch(()=>selected.value?.id,async()=>{tablePage.value=0;trajectoryPage.value=0;await nextTick();reviewDetail.value?.querySelectorAll('.table-scroll').forEach(element=>{element.scrollTop=0})})
 function time(value) {return Number.isFinite(value) ? ui.time(value,props.record.state.clock.epoch):'—'}
 function route(path) {return ui.display(routeLabels(path,nodes.value).join(' → ') || ui.t('pending'))}
 function label(id) {return ui.display(locationLabel(nodes.value,id))}
