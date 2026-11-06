@@ -17,12 +17,12 @@ export function interpolate(points, now) {
   }
   return points.at(-1)
 }
-export async function api(path, body) {
+export async function api(path, body, timeout=8000) {
   const response = await fetch(`/api/demo/${path}`, {
     method: body ? 'POST' : 'GET',
     headers: body ? { 'Content-Type': 'application/json' } : {},
     body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(timeout),
   })
   const data = await response.json()
   if (!response.ok) {

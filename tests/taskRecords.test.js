@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {parseTaskRecords,RECORD_FORMAT,RECORD_LIMIT} from '../src/utils/taskRecords.js'
 
-const fixture=()=>({format:RECORD_FORMAT,version:1,exportedAt:'2026-11-05T12:00:00Z',
+const fixture=()=>({format:RECORD_FORMAT,version:2,replay:{inputs:[],batches:[]},exportedAt:'2026-11-05T12:00:00Z',
   scene:{campusId:'demo-campus',version:'scene-one',nodes:[{id:'a'},{id:'b'}]},
   state:{campusId:'demo-campus',sceneVersion:'scene-one',sessionId:'archived',clock:{now:10,epoch:1700000000},robots:[],logs:[{time:10,type:'failed',taskId:'T001',message:'T001: CONFLICT_UNRESOLVED'}],tasks:[{
     id:'T001',name:'Mixed batch incident',taskType:'sample',priority:'normal',batchId:'B001',robotId:null,
@@ -28,7 +28,7 @@ test('archive accepts empty sessions and collecting or assigned task plans',()=>
 })
 test('wrong file/version and damaged or inconsistent plans are rejected before rendering',()=>{
   assert.throws(()=>parseTaskRecords('{'),/recordsInvalid/)
-  assert.throws(()=>parseTaskRecords(JSON.stringify({...fixture(),version:2})),/recordsUnsupported/)
+  assert.throws(()=>parseTaskRecords(JSON.stringify({...fixture(),version:1})),/recordsUnsupported/)
   for(const corrupt of [
     r=>r.state.campusId='different-campus',r=>r.state.sceneVersion='different-version',
     r=>r.state.tasks.push({...r.state.tasks[0]}),r=>r.state.tasks[0].routeNodes=['a','missing'],

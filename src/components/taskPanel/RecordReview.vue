@@ -1,6 +1,9 @@
 <template>
   <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue',$event)" :title="ui.t('recordsReview')" size="xl">
     <div class="review-intro">
+      <button @click="prepareReplay" :disabled="replayBusy">{{ ui.preferences.locale==='zh-CN' ? '使用当前算法重新调度' : 'Re-run with current algorithm' }}</button>
+      <p v-if="replayError" role="alert">{{ replayError }}</p>
+      <div v-if="replayPreview"><p>{{ ui.preferences.locale==='zh-CN' ? '将使用当前园区配置重新调度全部订单；当前演示任务保留。' : 'Re-run all orders with current campus configuration; live tasks are preserved.' }}</p><p>{{ replayPreview.taskCount }} orders · {{ replayPreview.batchCount }} batches · {{ record.scene.version }} → {{ replayPreview.sceneVersion }}</p><p>{{ replayPreview.robotConfigurationChanged ? (ui.preferences.locale==='zh-CN' ? '机器人配置已变化' : 'Robot configuration changed') : (ui.preferences.locale==='zh-CN' ? '机器人配置一致' : 'Robot configuration unchanged') }}</p><p>Algorithm: {{ record.algorithm?.fingerprint?.slice(0,12) }} → {{ replayPreview.algorithm?.fingerprint?.slice(0,12) }}</p><button @click="startReplay">{{ ui.preferences.locale==='zh-CN' ? '开始独立重算' : 'Start isolated replay' }}</button></div>
       <p>{{ ui.t('recordsReadOnly') }}</p>
       <dl class="archive-meta">
         <div><dt>{{ ui.t('campus') }}</dt><dd>{{ campusName }}</dd></div>
@@ -61,10 +64,15 @@
   </Modal>
 </template>
 <script setup>
+import {useRouter} from 'vue-router'
+import {api} from '../../utils/demo.js'
 import {computed,ref,watch} from 'vue'
 import Modal from '../common/Modal.vue'
 import {useUiStore} from '../../stores/uiStore'
 import {locationLabel,routeLabels} from '../../utils/locations.js'
+const router=useRouter(),replayBusy=ref(false),replayError=ref(''),replayPreview=ref(null)
+async function prepareReplay(){replayBusy.value=true;replayError.value='';try{replayPreview.value=await api('replays/preview',props.record,60000)}catch(e){replayError.value=e.message}finally{replayBusy.value=false}}
+async function startReplay(){const tab=window.open('about:blank','_blank');replayBusy.value=true;try{const job=await api('replays',{requestId:crypto.randomUUID(),record:props.record,sceneVersion:replayPreview.value.sceneVersion});const url=router.resolve({name:'replay',params:{id:job.id}}).href;if(tab)tab.location.href=url;else router.push(url)}catch(e){tab?.close();replayError.value=e.message}finally{replayBusy.value=false}}
 const props=defineProps({modelValue:Boolean,record:{type:Object,required:true}})
 defineEmits(['update:modelValue'])
 const ui=useUiStore(),status=ref(''),batch=ref(''),type=ref(''),selectedId=ref(null),page=ref(0),tablePage=ref(0),logPage=ref(0),trajectoryPage=ref(0)
@@ -78,7 +86,7 @@ const filtered=computed(()=>tasks.value.filter(t=>(!status.value || t.status===s
 const pageCount=computed(()=>Math.max(1,Math.ceil(filtered.value.length/50)))
 const pageTasks=computed(()=>filtered.value.slice(page.value*50,(page.value+1)*50))
 const selected=computed(()=>pageTasks.value.find(t=>t.id===selectedId.value) || pageTasks.value[0])
-watch(()=>props.record,()=>{status.value='';batch.value='';type.value='';page.value=0;selectedId.value=null;tablePage.value=0;trajectoryPage.value=0;logPage.value=0})
+watch(()=>props.record,()=>{replayPreview.value=null;replayError.value='';status.value='';batch.value='';type.value='';page.value=0;selectedId.value=null;tablePage.value=0;trajectoryPage.value=0;logPage.value=0})
 watch([status,batch,type],()=>{page.value=0;tablePage.value=0})
 watch(()=>selected.value?.id,()=>{tablePage.value=0;trajectoryPage.value=0})
 function time(value) {return Number.isFinite(value) ? ui.time(value,props.record.state.clock.epoch):'—'}

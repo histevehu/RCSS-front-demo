@@ -10,7 +10,8 @@ export function parseTaskRecords(source) {
   if (typeof source !== 'string' || new Blob([source]).size > RECORD_LIMIT) throw new Error('recordsTooLarge')
   let record
   try { record = JSON.parse(source) } catch { throw new Error('recordsInvalid') }
-  if (record?.format !== RECORD_FORMAT || record.version !== 1) throw new Error('recordsUnsupported')
+  if (record?.format !== RECORD_FORMAT || record.version !== 2) throw new Error('recordsUnsupported')
+  if (!object(record.replay) || !Array.isArray(record.replay.inputs) || !Array.isArray(record.replay.batches) || record.replay.inputs.length>5000) throw new Error('recordsInvalid')
   const {scene,state} = record
   const invalid = () => { throw new Error('recordsInvalid') }
   if (!object(scene) || !object(state) || !object(state.clock) ||
